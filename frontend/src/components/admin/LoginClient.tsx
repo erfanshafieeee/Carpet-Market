@@ -29,7 +29,13 @@ export function LoginClient() {
         .replace(/[٠-٩]/g, (digit) => String("٠١٢٣٤٥٦٧٨٩".indexOf(digit)))
         .replace(/\D/g, "");
       await apiFetch("/auth/login/", { method: "POST", body: JSON.stringify({ mobile_number: mobileNumber, password }) });
+      const session = await apiFetch<{ authenticated: boolean; mobile_number?: string }>("/auth/me/");
+      if (!session.authenticated) {
+        setError("نشست ورود در مرورگر ذخیره نشد؛ کوکی‌های localhost را فعال و دوباره تلاش کنید.");
+        return;
+      }
       router.replace("/Admin/dashboard");
+      router.refresh();
     } catch (reason) {
       const status = (reason as Error & { status?: number }).status;
       setError(status === 429 ? "تعداد تلاش‌ها زیاد است؛ یک دقیقه دیگر دوباره امتحان کنید." : "ورود انجام نشد؛ شماره موبایل و رمز عبور را بررسی کنید.");

@@ -1,5 +1,7 @@
 from django.contrib.auth import login, logout, update_session_auth_hash
 from django.middleware.csrf import get_token
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import never_cache
 from rest_framework import permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -7,11 +9,13 @@ from rest_framework.views import APIView
 from .serializers import ChangePasswordSerializer, LoginSerializer
 
 
+@method_decorator(never_cache, name="dispatch")
 class CsrfView(APIView):
     def get(self, request):
         return Response({"csrfToken": get_token(request)})
 
 
+@method_decorator(never_cache, name="dispatch")
 class LoginView(APIView):
     throttle_scope = "login"
 
@@ -22,6 +26,7 @@ class LoginView(APIView):
         return Response({"authenticated": True, "mobile_number": request.user.mobile_number})
 
 
+@method_decorator(never_cache, name="dispatch")
 class LogoutView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
@@ -30,6 +35,7 @@ class LogoutView(APIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
+@method_decorator(never_cache, name="dispatch")
 class MeView(APIView):
     def get(self, request):
         if not request.user.is_authenticated:
@@ -37,6 +43,7 @@ class MeView(APIView):
         return Response({"authenticated": True, "mobile_number": request.user.mobile_number})
 
 
+@method_decorator(never_cache, name="dispatch")
 class ChangePasswordView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 

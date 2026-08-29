@@ -13,6 +13,7 @@ class AdminLoginTests(TestCase):
     def test_login_with_csrf_creates_authenticated_session(self):
         csrf_response = self.client.get("/api/v1/auth/csrf/")
         self.assertEqual(csrf_response.status_code, 200)
+        self.assertIn("no-store", csrf_response["Cache-Control"])
         token = csrf_response.data["csrfToken"]
 
         login_response = self.client.post(
@@ -23,11 +24,20 @@ class AdminLoginTests(TestCase):
         )
         self.assertEqual(login_response.status_code, 200)
         self.assertTrue(login_response.data["authenticated"])
+        self.assertIn("no-store", login_response["Cache-Control"])
 
         me_response = self.client.get("/api/v1/auth/me/")
         self.assertEqual(me_response.status_code, 200)
         self.assertTrue(me_response.data["authenticated"])
         self.assertEqual(me_response.data["mobile_number"], self.mobile)
+        self.assertIn("no-store", me_response["Cache-Control"])
+
+    def test_anonymous_session_status_is_not_cached(self):
+        response = self.client.get("/api/v1/auth/me/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.data["authenticated"])
+        self.assertIn("no-store", response["Cache-Control"])
 
     def test_invalid_password_is_rejected(self):
         token = self.client.get("/api/v1/auth/csrf/").data["csrfToken"]

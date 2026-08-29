@@ -17,7 +17,12 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
     if (!csrfToken) throw new Error("توکن امنیتی در دسترس نیست.");
     headers.set("X-CSRFToken", csrfToken);
   }
-  const response = await fetch(`${API_URL}${path}`, { ...init, headers, credentials: "include" });
+  const response = await fetch(`${API_URL}${path}`, {
+    ...init,
+    headers,
+    credentials: "include",
+    cache: init.cache ?? "no-store"
+  });
   if (!response.ok) {
     const payload = await response.json().catch(() => null);
     const error = new Error("درخواست با خطا مواجه شد.") as Error & { status?: number; payload?: unknown };

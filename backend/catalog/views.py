@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from django.db import transaction
 from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404
 from rest_framework import filters, generics, permissions, status, viewsets
@@ -135,22 +136,24 @@ class AdminProductViewSet(viewsets.ModelViewSet):
         instance.soft_delete()
 
     @action(detail=True, methods=["post"], url_path="images")
-    def upload_image(self, request, pk=None):
+    @transaction.atomic
+    def upload_image(self, request, *args, **kwargs):
         product = self.get_object()
-        if product.images.count() >= 10:
+        image_count = product.images.count()
+        if image_count >= 10:
             return Response({"error": {"details": {"image": ["حداکثر ۱۰ تصویر مجاز است."]}}}, status=status.HTTP_400_BAD_REQUEST)
         serializer = ProductImageUploadSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         if serializer.validated_data.get("is_cover"):
             product.images.update(is_cover=False)
         image = serializer.save(product=product)
-        if product.images.count() == 1 and not image.is_cover:
+        if image_count == 0 and not image.is_cover:
             image.is_cover = True
             image.save(update_fields=["is_cover"])
         return Response(ProductImageSerializer(image, context={"request": request}).data, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=["delete"], url_path=r"images/(?P<image_id>[^/.]+)")
-    def delete_image(self, request, pk=None, image_id=None):
+    def delete_image(self, request, image_id=None, *args, **kwargs):
         product = self.get_object()
         if product.images.count() <= 1:
             return Response(
@@ -168,7 +171,7 @@ class AdminProductViewSet(viewsets.ModelViewSet):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=True, methods=["patch"], url_path=r"images/(?P<image_id>[^/.]+)/cover")
-    def set_cover(self, request, pk=None, image_id=None):
+    def set_cover(self, request, image_id=None, *args, **kwargs):
         product = self.get_object()
         image = get_object_or_404(ProductImage, product=product, pk=image_id)
         product.images.update(is_cover=False)
@@ -177,7 +180,7 @@ class AdminProductViewSet(viewsets.ModelViewSet):
         return Response(ProductImageSerializer(image, context={"request": request}).data)
 
     @action(detail=True, methods=["post"], url_path="images/reorder")
-    def reorder_images(self, request, pk=None):
+    def reorder_images(self, request, *args, **kwargs):
         product = self.get_object()
         image_ids = request.data.get("image_ids")
         if not isinstance(image_ids, list) or set(map(str, image_ids)) != set(map(str, product.images.values_list("id", flat=True))):
@@ -190,7 +193,7 @@ class AdminProductViewSet(viewsets.ModelViewSet):
         return Response(ProductImageSerializer(product.images.all(), many=True, context={"request": request}).data)
 
     @action(detail=True, methods=["patch"], url_path="status")
-    def update_status(self, request, pk=None):
+    def update_status(self, request, *args, **kwargs):
         product = self.get_object()
         new_status = request.data.get("inventory_status")
         if new_status not in Product.InventoryStatus.values:

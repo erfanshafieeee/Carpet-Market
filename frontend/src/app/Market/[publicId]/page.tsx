@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 import type { Product } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000/api/v1";
+const API_URL = process.env.BACKEND_API_URL ?? "http://127.0.0.1:8000/api/v1";
 
 async function getProduct(publicId: string, language: string) {
   try {

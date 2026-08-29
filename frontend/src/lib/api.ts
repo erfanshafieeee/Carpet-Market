@@ -1,4 +1,4 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000/api/v1";
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "/api/v1";
 
 function cookie(name: string) {
   if (typeof document === "undefined") return "";
@@ -10,8 +10,12 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
   const headers = new Headers(init.headers);
   if (!(init.body instanceof FormData) && init.body && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
   if (!["GET", "HEAD", "OPTIONS"].includes(method)) {
-    if (!cookie("csrftoken")) await fetch(`${API_URL}/auth/csrf/`, { credentials: "include" });
-    headers.set("X-CSRFToken", decodeURIComponent(cookie("csrftoken")));
+    const csrfResponse = await fetch(`${API_URL}/auth/csrf/`, { credentials: "include", cache: "no-store" });
+    if (!csrfResponse.ok) throw new Error("دریافت توکن امنیتی انجام نشد.");
+    const csrfPayload = await csrfResponse.json() as { csrfToken?: string };
+    const csrfToken = csrfPayload.csrfToken ?? decodeURIComponent(cookie("csrftoken"));
+    if (!csrfToken) throw new Error("توکن امنیتی در دسترس نیست.");
+    headers.set("X-CSRFToken", csrfToken);
   }
   const response = await fetch(`${API_URL}${path}`, { ...init, headers, credentials: "include" });
   if (!response.ok) {

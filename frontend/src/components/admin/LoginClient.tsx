@@ -23,10 +23,16 @@ export function LoginClient() {
     setError("");
     setBusy(true);
     try {
-      await apiFetch("/auth/login/", { method: "POST", body: JSON.stringify({ mobile_number: mobile.replace(/\s/g, ""), password }) });
+      const mobileNumber = mobile
+        .trim()
+        .replace(/[۰-۹]/g, (digit) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(digit)))
+        .replace(/[٠-٩]/g, (digit) => String("٠١٢٣٤٥٦٧٨٩".indexOf(digit)))
+        .replace(/\D/g, "");
+      await apiFetch("/auth/login/", { method: "POST", body: JSON.stringify({ mobile_number: mobileNumber, password }) });
       router.replace("/Admin/dashboard");
-    } catch {
-      setError("شماره موبایل یا رمز عبور صحیح نیست.");
+    } catch (reason) {
+      const status = (reason as Error & { status?: number }).status;
+      setError(status === 429 ? "تعداد تلاش‌ها زیاد است؛ یک دقیقه دیگر دوباره امتحان کنید." : "ورود انجام نشد؛ شماره موبایل و رمز عبور را بررسی کنید.");
     } finally {
       setBusy(false);
     }

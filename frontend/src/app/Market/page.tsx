@@ -5,7 +5,7 @@ import type { PaginatedProducts, References } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000/api/v1";
+const API_URL = process.env.BACKEND_API_URL ?? "http://127.0.0.1:8000/api/v1";
 
 export const metadata: Metadata = {
   title: "بازار فرش ایران | Iran Carpet Market",

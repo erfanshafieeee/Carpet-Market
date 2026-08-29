@@ -8,8 +8,8 @@ import { apiFetch } from "@/lib/api";
 
 export function LoginClient() {
   const router = useRouter();
-  const [mobile, setMobile] = useState("09120000000");
-  const [password, setPassword] = useState("Demo1234!");
+  const [mobile, setMobile] = useState("");
+  const [password, setPassword] = useState("");
   const [show, setShow] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -52,12 +52,11 @@ export function LoginClient() {
         <h1>به پنل فروشنده وارد شوید</h1>
         <p>محصولات، تصاویر و موجودی فروشگاه را مدیریت کنید.</p>
         <form onSubmit={submit}>
-          <label>شماره موبایل<input dir="ltr" inputMode="tel" value={mobile} onChange={(e) => setMobile(e.target.value)} /></label>
-          <label>رمز عبور<div className="password-input"><input dir="ltr" type={show ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} /><button type="button" onClick={() => setShow((value) => !value)} aria-label="نمایش رمز">{show ? <FiEyeOff /> : <FiEye />}</button></div></label>
+          <label>شماره موبایل<input dir="rtl" inputMode="tel" autoComplete="username" placeholder="شماره موبایل خود را وارد کنید" required value={mobile} onChange={(e) => setMobile(e.target.value)} /></label>
+          <label>رمز عبور<div className="password-input"><input dir="rtl" type={show ? "text" : "password"} autoComplete="current-password" required value={password} onChange={(e) => setPassword(e.target.value)} /><button type="button" onClick={() => setShow((value) => !value)} aria-label={show ? "پنهان کردن رمز" : "نمایش رمز"}>{show ? <FiEyeOff /> : <FiEye />}</button></div></label>
           {error && <p className="field-error">{error}</p>}
           <button className="button button-primary block" disabled={busy}>{busy ? "در حال ورود…" : "ورود به پنل"}</button>
         </form>
-        <div className="login-demo"><strong>حساب Demo محلی</strong><p>موبایل: <bdi>09120000000</bdi><br />رمز: <bdi>Demo1234!</bdi></p><small>برای محیط واقعی، اطلاعات ورود از متغیرهای محیطی ساخته می‌شود.</small></div>
       </main>
     </div>
   );

@@ -1,3 +1,5 @@
+import fs from "node:fs/promises";
+
 const endpoint = process.env.QA_CDP_ENDPOINT ?? "http://127.0.0.1:9333";
 const frontendOrigin = process.env.QA_FRONTEND_ORIGIN ?? "http://localhost:3000";
 const mobile = process.env.QA_ADMIN_MOBILE;
@@ -12,15 +14,16 @@ let targets;
 for (let attempt = 0; attempt < 30; attempt += 1) {
   try {
     targets = await fetch(`${endpoint}/json/list`).then((response) => response.json());
-    if (targets.length) break;
+    if (targets.some((target) => target.type === "page")) break;
   } catch {
     // Chrome is still starting.
   }
   await delay(250);
 }
-if (!targets?.length) throw new Error("Chrome DevTools endpoint did not become ready.");
+const target = targets?.find((candidate) => candidate.type === "page");
+if (!target) throw new Error("Chrome DevTools page target did not become ready.");
 
-const socket = new WebSocket(targets[0].webSocketDebuggerUrl);
+const socket = new WebSocket(target.webSocketDebuggerUrl);
 const pending = new Map();
 const browserErrors = [];
 let messageId = 0;
@@ -57,8 +60,22 @@ async function evaluate(expression) {
 }
 
 await Promise.all([command("Page.enable"), command("Runtime.enable")]);
+await command("Emulation.setDeviceMetricsOverride", { width: 696, height: 593, deviceScaleFactor: 1, mobile: false });
 await command("Page.navigate", { url: `${frontendOrigin}/Admin` });
 await delay(1800);
+
+const initialState = await evaluate(`(() => {
+  const inputs = document.querySelectorAll('form input');
+  return {
+    inputsEmpty: [...inputs].every((input) => input.value === ''),
+    mobilePlaceholder: inputs[0]?.placeholder ?? '',
+    mobileDirection: inputs[0] ? getComputedStyle(inputs[0]).direction : '',
+    passwordDirection: inputs[1] ? getComputedStyle(inputs[1]).direction : '',
+    demoAbsent: !document.querySelector('.login-demo')
+  };
+})()`);
+const loginScreenshot = await command("Page.captureScreenshot", { format: "png", captureBeyondViewport: false });
+await fs.writeFile(new URL("./implementation-admin-login.png", import.meta.url), Buffer.from(loginScreenshot.data, "base64"));
 
 await evaluate(`(() => {
   const inputs = document.querySelectorAll('form input');
@@ -77,8 +94,16 @@ const result = await evaluate(`({
   metrics: document.querySelectorAll('.metric-card').length,
   visibleError: document.querySelector('[role="alert"]')?.textContent ?? ''
 })`);
+Object.assign(result, initialState);
 result.browserErrors = [...new Set(browserErrors)].filter((error) => !error.includes("favicon.ico"));
-result.passed = result.path === "/Admin/dashboard" && result.metrics === 4 && result.browserErrors.length === 0;
+result.passed = result.inputsEmpty
+  && result.mobilePlaceholder === "شماره موبایل خود را وارد کنید"
+  && result.mobileDirection === "rtl"
+  && result.passwordDirection === "rtl"
+  && result.demoAbsent
+  && result.path === "/Admin/dashboard"
+  && result.metrics === 4
+  && result.browserErrors.length === 0;
 
 console.log(JSON.stringify(result, null, 2));
 socket.close();

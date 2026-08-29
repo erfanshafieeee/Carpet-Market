@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { FiActivity, FiEye, FiPhone, FiPlus } from "react-icons/fi";
 import { AdminShell } from "./AdminShell";
+import { JalaliDateRangePicker } from "./JalaliDateRangePicker";
 import { apiFetch } from "@/lib/api";
 import type { DashboardData } from "@/lib/types";
 
@@ -21,7 +22,7 @@ export function DashboardClient() {
     apiFetch<DashboardData>(`/analytics/dashboard/?${params}`).then(setData).catch(() => setError(true));
   }, [range, from, to]);
   useEffect(() => { load(); }, [load]);
-  return <AdminShell><div className="admin-page-heading"><div><h1>نمای کلی فروشگاه</h1><p>وضعیت موجودی و مسیر رسیدن مشتری به تماس</p></div><div className="dashboard-range"><select value={range} onChange={(e) => { setError(false); setRange(e.target.value); }}><option value="7">۷ روز اخیر</option><option value="30">۳۰ روز اخیر</option><option value="custom">بازه سفارشی</option></select>{range === "custom" && <><input aria-label="از تاریخ" type="date" value={from} onChange={(e) => { setError(false); setFrom(e.target.value); }} /><input aria-label="تا تاریخ" type="date" value={to} min={from} onChange={(e) => { setError(false); setTo(e.target.value); }} /></>}<Link className="button button-primary" href="/Admin/products/new"><FiPlus />افزودن فرش</Link></div></div>{error ? <div className="empty-state"><h2>دریافت آمار انجام نشد</h2><button className="button" onClick={() => { setError(false); load(); }}>تلاش دوباره</button></div> : !data ? <div className="loading-state">در حال محاسبه آمار…</div> : <DashboardContent data={data} />}</AdminShell>;
+  return <AdminShell><div className="admin-page-heading"><div><h1>نمای کلی فروشگاه</h1><p>وضعیت موجودی و مسیر رسیدن مشتری به تماس</p></div><div className="dashboard-range"><select value={range} onChange={(e) => { setError(false); setRange(e.target.value); }}><option value="7">۷ روز اخیر</option><option value="30">۳۰ روز اخیر</option><option value="custom">بازه سفارشی</option></select><Link className="button button-primary" href="/Admin/products/new"><FiPlus />افزودن فرش</Link></div></div>{range === "custom" && <JalaliDateRangePicker from={from} to={to} onChange={(nextFrom, nextTo) => { setError(false); setFrom(nextFrom); setTo(nextTo); }} />}{error ? <div className="empty-state"><h2>دریافت آمار انجام نشد</h2><button className="button" onClick={() => { setError(false); load(); }}>تلاش دوباره</button></div> : !data ? <div className="loading-state">در حال محاسبه آمار…</div> : <DashboardContent data={data} />}</AdminShell>;
 }
 
 function DashboardContent({ data }: { data: DashboardData }) {

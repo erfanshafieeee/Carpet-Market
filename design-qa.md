@@ -2,6 +2,20 @@
 
 final result: passed
 
+## Jalali report date picker iteration — 2026-08-29
+
+- Source visual truth: the user-updated `Heritage-Gallery (1).html`, Revision 3 Persian calendar and custom report range.
+- Implementation screenshot: `frontend/qa/implementation-jalali-date-picker.png`.
+- Viewport and implementation pixels: `1280 × 900` CSS px and `1280 × 900` image px, device scale factor `1`.
+- State: authenticated Persian admin dashboard, custom range selected, start-date calendar open.
+- Full-view evidence: the modal hierarchy, dimmed dashboard context, compact range card, wine selection color, paper surfaces, month/year controls, weekday row and six-week grid match the revised source direction.
+- Focused evidence: the calendar is readable at full capture size; it renders 42 day controls, Persian month/year labels, today state, previous/next month controls, start/end selection summary, clear action and responsive modal structure.
+- Typography, spacing, colors, icon fidelity and Persian copy: passed against the existing tokens and the revised source.
+- Interaction evidence: selecting custom range opens the Jalali picker; choosing start keeps the picker open for the end date; choosing end closes it and populates both range fields; Gregorian ISO values continue to feed the analytics API.
+- Browser console errors: none.
+
+final result: passed
+
 ## Comparison setup
 
 - Source visual truth: `Heritage-Gallery (1).html`

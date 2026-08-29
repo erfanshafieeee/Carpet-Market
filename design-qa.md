@@ -74,3 +74,38 @@ final result: passed
 - Seeded database values, product ordering and metric totals are intentionally different from the static prototype data.
 - The prototype-only analytics source toggle is not implemented because it is not a production requirement.
 - The narrow mobile brand crop visible in the source is retained for visual fidelity and does not cover the primary market controls.
+
+## Admin login form iteration — 2026-08-29
+
+- Source visual truth: `Heritage-Gallery (1).html`, the user-attached `696 × 593` login screenshot, and the explicit requested deltas: empty inputs, an in-field mobile hint, RTL input text, and no local Demo account panel.
+- Implementation screenshot: `frontend/qa/implementation-admin-login.png`.
+- Viewport and implementation pixels: `696 × 593` CSS px and `696 × 593` image px, device scale factor `1`; no density normalization was required.
+- State: Persian admin login before entry, followed by a successful real admin login interaction.
+
+### Full-view comparison evidence
+
+- The centered form, heading hierarchy, wine primary action, paper background, borders, widths, and vertical rhythm remain consistent with the supplied design.
+- The requested removal of the Demo panel leaves intentional whitespace below the primary action without disturbing the form's centered composition.
+
+### Focused-region comparison evidence
+
+- Both fields were checked at readable size in the full `696 × 593` capture, so a separate crop was not needed.
+- The mobile value and password are empty on initial render; the mobile hint starts on the right; computed direction for both inputs is `rtl`; the password reveal control stays on the left with reserved padding and no text overlap.
+
+### Required fidelity surfaces
+
+- Fonts and typography: passed; the existing Persian font hierarchy and weights are unchanged.
+- Spacing and layout rhythm: passed; field, label, CTA, and reveal-control spacing have no actionable drift.
+- Colors and visual tokens: passed; paper, ink, muted border, hint, and wine tokens remain aligned.
+- Image quality and asset fidelity: passed; this screen has no raster assets, and the reveal icon continues to use the existing icon library.
+- Copy and content: passed; mock credentials and the local Demo panel are absent, while the mobile hint is clear and non-sensitive.
+- Accessibility and behavior: passed; required fields, autocomplete semantics, dynamic reveal-label text, keyboard submission, session verification, and visible error handling remain functional.
+
+### Comparison history
+
+- Finding `[P1]`: mock credentials were prefilled and repeated in a local Demo panel, exposing non-production content in the core login experience.
+- Finding `[P2]`: `dir="ltr"` made both values start on the left and caused the password content to compete with the reveal icon.
+- Fix: initialized both values as empty, removed the Demo panel, added a descriptive mobile placeholder, applied RTL direction and right alignment, and retained inline-end padding for the reveal control.
+- Post-fix evidence: `frontend/qa/implementation-admin-login.png`; automated browser checks report `inputsEmpty`, `demoAbsent`, `mobileDirection=rtl`, `passwordDirection=rtl`, successful dashboard navigation, four metric cards, and zero browser errors.
+
+final result: passed

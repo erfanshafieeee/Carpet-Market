@@ -88,6 +88,9 @@ await selectFile(firstImage);
 const previewsAfterFirst = await evaluate("document.querySelectorAll('.image-previews > div').length");
 await selectFile(secondImage);
 const previewsAfterSecond = await evaluate("document.querySelectorAll('.image-previews > div').length");
+await evaluate("document.querySelectorAll('.image-previews > div')[1]?.querySelector('.cover-action')?.click()");
+const pendingCoverCount = await evaluate("document.querySelectorAll('.image-previews > .pending-cover').length");
+const secondPreviewIsCover = await evaluate("document.querySelectorAll('.image-previews > div')[1]?.classList.contains('pending-cover') ?? false");
 
 await navigate("/Admin/dashboard");
 await evaluate(`(() => {
@@ -112,12 +115,16 @@ const selectedDateFields = await evaluate("document.querySelectorAll('.jalali-fi
 const result = {
   previewsAfterFirst,
   previewsAfterSecond,
+  pendingCoverCount,
+  secondPreviewIsCover,
   calendarDays,
   selectedDateFields,
   browserErrors: [...new Set(browserErrors)].filter((error) => !error.includes("favicon.ico"))
 };
 result.passed = result.previewsAfterFirst === 1
   && result.previewsAfterSecond === 2
+  && result.pendingCoverCount === 1
+  && result.secondPreviewIsCover
   && result.calendarDays === 42
   && result.selectedDateFields === 2
   && result.browserErrors.length === 0;

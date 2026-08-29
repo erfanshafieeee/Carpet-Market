@@ -24,6 +24,7 @@ input,select,textarea{width:100%;min-height:46px;padding:10px 13px;border:1px so
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
 .dashboard-range{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.dashboard-range input{width:145px;min-height:44px}.store-admin-panel{max-width:760px}.store-admin-panel dt{display:flex;align-items:center;gap:8px}.store-admin-panel dd{max-width:58%;text-align:end}
 .image-previews .cover-action{top:auto;bottom:5px;inset-inline-end:auto;inset-inline-start:5px;width:auto;padding:3px 6px;font-size:10px;color:var(--wine)}
+.image-previews>div.pending-cover{border-color:var(--wine);box-shadow:0 0 0 1px var(--wine)}
 .market-page,.detail-page{max-width:1380px}.product-photo{aspect-ratio:.79}
 @media(min-width:761px){.product-photo{aspect-ratio:.86}}
 .dashboard-range select{width:auto;flex:0 0 150px}.funnel-row:nth-of-type(2)>div:last-child span{opacity:.75}.funnel-row:nth-of-type(3)>div:last-child span{opacity:.5}

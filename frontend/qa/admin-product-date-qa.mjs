@@ -76,6 +76,7 @@ await command("Emulation.setDeviceMetricsOverride", { width: 1280, height: 900, 
 await navigate("/Admin");
 await evaluate(`(() => {
   const inputs = document.querySelectorAll('form input');
+  if (inputs.length < 2) return;
   const setValue = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
   setValue.call(inputs[0], ${JSON.stringify(mobile)}); inputs[0].dispatchEvent(new Event('input', { bubbles: true }));
   setValue.call(inputs[1], ${JSON.stringify(password)}); inputs[1].dispatchEvent(new Event('input', { bubbles: true }));

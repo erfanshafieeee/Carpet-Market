@@ -1,125 +1,60 @@
-# Design QA
-
-final result: passed
-
-## Jalali report date picker iteration — 2026-08-29
-
-- Source visual truth: the user-updated `Heritage-Gallery (1).html`, Revision 3 Persian calendar and custom report range.
-- Implementation screenshot: `frontend/qa/implementation-jalali-date-picker.png`.
-- Viewport and implementation pixels: `1280 × 900` CSS px and `1280 × 900` image px, device scale factor `1`.
-- State: authenticated Persian admin dashboard, custom range selected, start-date calendar open.
-- Full-view evidence: the modal hierarchy, dimmed dashboard context, compact range card, wine selection color, paper surfaces, month/year controls, weekday row and six-week grid match the revised source direction.
-- Focused evidence: the calendar is readable at full capture size; it renders 42 day controls, Persian month/year labels, today state, previous/next month controls, start/end selection summary, clear action and responsive modal structure.
-- Typography, spacing, colors, icon fidelity and Persian copy: passed against the existing tokens and the revised source.
-- Interaction evidence: selecting custom range opens the Jalali picker; choosing start keeps the picker open for the end date; choosing end closes it and populates both range fields; Gregorian ISO values continue to feed the analytics API.
-- Browser console errors: none.
-
-final result: passed
+# Design QA — full frontend parity
 
 ## Comparison setup
 
-- Source visual truth: `Heritage-Gallery (1).html`
-- Source screenshots:
-  - `frontend/qa/source-market-desktop.png`
-  - `frontend/qa/source-market-mobile.png`
-  - `frontend/qa/source-detail-desktop.png`
-  - `frontend/qa/source-admin-dashboard.png`
-- Implementation screenshots:
-  - `frontend/qa/implementation-market-desktop.png`
-  - `frontend/qa/implementation-market-mobile.png`
-  - `frontend/qa/implementation-detail-desktop.png`
-  - `frontend/qa/implementation-admin-dashboard.png`
-- Browser: Google Chrome headless, device scale factor `1`
-- Desktop viewport and pixel dimensions: `1440 × 1000` CSS px and `1440 × 1000` image px
-- Mobile viewport and pixel dimensions: `390 × 844` CSS px and `390 × 844` image px
-- Density normalization: none required; source and implementation captures use the same viewport and `deviceScaleFactor=1`.
-- States: Persian market at initial unfiltered state, Persian product detail, authenticated Persian admin dashboard.
+- Source visual truth: `Heritage-Gallery (1).html` (the revised local design prototype).
+- Evidence: `frontend/qa/design-parity/comparison/`; every canvas shows the source on the left and the implementation on the right.
+- Desktop viewport/capture: `1440 × 1000` CSS/image pixels, DPR `1`.
+- Mobile viewport/capture: `390 × 844` CSS/image pixels, DPR `1`.
+- States: Persian public market, product detail, unauthenticated admin login, and authenticated admin routes.
+- Browser/runtime result: 10 source captures, 10 implementation captures, and no console/runtime errors.
 
-## Full-view comparison evidence
+## Screen-by-screen evidence
 
-- Market desktop: the header, typography hierarchy, centered search, RTL filter rail, sorting control, three-column product grid, imagery, price/status treatment, borders and paper/wine palette align with the source. Demo product order and counts differ intentionally because the implementation reads seeded database records.
-- Market mobile: the two-column grid, filter/sort controls, mobile proportions, typography and product imagery align at `390px`; no overlap or hidden core control was found.
-- Product detail: the RTL two-column layout, image scale, contact CTA, status, specifications card and store information preserve the source hierarchy and spacing.
-- Admin dashboard: header/sidebar proportions, four metrics, inventory/funnel panels, tables, borders and semantic colors match the source structure. The source-only analytics demo toggle is intentionally absent because it is a prototype control outside the PRD.
-
-## Focused-region comparison evidence
-
-- Header and typography: the embedded Vazirmatn and Noto Naskh assets from the source are used directly; title, brand, body and numeric weights were checked in the desktop and admin captures.
-- Filters and cards: rail width, dividers, price inputs, product crop, grid gaps, title truncation, price wine color and inventory states were checked in desktop and mobile captures.
-- Detail conversion area: contact CTA, price/status visibility and specification grouping were checked against the source detail capture.
-- Admin metrics and funnel: card padding, bar hierarchy, inventory rows, navigation order and action controls were checked against the source dashboard capture.
+| Screen | Evidence | Result |
+| --- | --- | --- |
+| Market — desktop | `comparison/01-market-desktop.png` | Passed: header, search/filter rail, sorting, grid, cards, spacing, tokens, and RTL hierarchy align. |
+| Product detail | `comparison/02-product-detail.png` | Passed: gallery/detail split, CTA, price/status, specifications, and store hierarchy align. |
+| Admin login | `comparison/03-admin-login.png` | Passed: empty RTL inputs, mobile hint, reveal control, CTA, and removal of the Demo panel align. |
+| Admin dashboard | `comparison/04-admin-dashboard.png` | Passed: sidebar/header, metrics, inventory, funnel, tables, and responsive rhythm align. |
+| Admin products | `comparison/05-admin-products.png` | Passed: separate view/contact columns, linked edit price, actions, table density, and explanatory notice align. |
+| Product form | `comparison/06-admin-product-form.png` | Passed: sections, bilingual hints, calculated area, upload guidance, previews, and five-column image grid align. |
+| Exchange rate | `comparison/07-admin-exchange-rate.png` | Passed: production-safe unconfigured-provider state replaces prototype fake USD data in both artifacts. |
+| Store settings | `comparison/08-admin-store.png` | Passed: English name, bilingual city/address, phone, layout, and control styling align. |
+| Market — mobile | `comparison/09-market-mobile.png` | Passed: two-column cards, controls, image proportions, and core content remain visible at 390px. |
+| Change password | `comparison/10-admin-change-password.png` | Passed: the product-only route was added to the design prototype and aligned with the implementation. |
 
 ## Required fidelity surfaces
 
-- Fonts and typography: passed. Source font files are reused; sizes, weights, line heights and RTL/LTR behavior retain the design hierarchy.
-- Spacing and layout rhythm: passed. Main content width, grid tracks, responsive image ratios, panel gaps, radii and dividers match without actionable drift.
-- Colors and visual tokens: passed. Paper, wine, ink, muted, sand and semantic status colors map to the source tokens.
-- Image quality and asset fidelity: passed. Original WebP carpet assets are reused with the intended crop; no placeholder, CSS art or substitute illustration is present.
-- Copy and content: passed. Product data is realistic seeded content; fixed Persian/English copy follows the PRD. English description remains absent when not supplied instead of falling back to Persian.
-- Accessibility and behavior: passed for the checked route states. Visible focus styles, semantic form controls, keyboard-sized controls, reduced-motion handling and responsive layouts are present.
+- Typography: passed; Vazirmatn/Noto Naskh hierarchy, sizes, weights, line heights, and RTL/LTR behavior are consistent.
+- Layout and spacing: passed; shared frames, columns, panel gaps, padding, dividers, radii, image ratios, and mobile behavior have no actionable drift.
+- Colors and tokens: passed; paper, wine, ink, muted, sand, borders, and semantic states match.
+- Images and assets: passed for presentation quality, sizing, crop, and loading behavior. See the accepted content difference below.
+- Copy and behavior: passed; shared Persian/English labels align, optional English description remains hidden when absent, and production-only constraints were brought back into the prototype.
+- Accessibility: passed for checked states; semantic controls, visible focus, keyboard-sized targets, labels, and responsive layouts remain intact.
 
 ## Comparison history
 
 ### Iteration 1
 
-- Finding `[P2]`: the initial implementation content region was about 30px narrower than the source and the product image ratio did not follow the source's desktop/mobile change.
-- Fix: increased the market/detail frame to preserve the source's effective `1340px` content width and set product images to `.86` on desktop and `.79` on mobile.
-- Post-fix evidence: `implementation-market-desktop.png` and `implementation-market-mobile.png` align with the corresponding source grid, card widths and image heights.
+- `[P1]` Login still exposed prototype Demo credentials; product statistics were merged; the form lacked design guidance and image-grid fidelity; rate/store states diverged; and change-password was absent from the prototype.
+- Fix: aligned login, split product statistics, added field/upload guidance and area preview, changed the preview grid, aligned rate/store content, and added the production change-password flow to the design.
 
 ### Iteration 2
 
-- Finding `[P2]`: the dashboard date selector and add button wrapped unnecessarily, and store/rate navigation order differed from the source.
-- Fix: constrained the selector to `150px`, preserved horizontal action layout where space allows, and matched sidebar ordering. Funnel opacity progression was also aligned.
-- Post-fix evidence: `implementation-admin-dashboard.png` matches the source dashboard hierarchy and navigation rhythm.
+- `[P2]` Two prototype navigation icons referenced unavailable icon names, and the change-password CTA width differed.
+- Fix: mapped the icons to valid design assets and aligned the CTA width.
 
-## Browser interaction and console checks
+### Iteration 3
 
-- Product cards rendered: `9`
-- All visible market images loaded with non-zero natural size.
-- Product detail navigation succeeded.
-- Contact modal opened and exposed the phone CTA.
-- Admin login succeeded with the local Demo account.
-- Four dashboard metric cards rendered.
-- Admin products table rendered `10` products.
-- Console/runtime errors after implementation route checks: none.
+- Full re-capture of all ten states found no remaining `P0`, `P1`, or `P2` visual/interaction issues.
+- Multi-image interaction QA passed: sequential selection retains both previews, exactly one pending cover can be selected, and the second image can become cover.
+- Jalali date-picker interaction QA passed: 42 calendar day controls rendered and both selected date fields populated.
+- Frontend typecheck, lint, and production build passed with zero errors; all 7 Django tests passed; browser console errors: none.
 
-## Residual accepted differences
+## Accepted non-UI differences
 
-- Seeded database values, product ordering and metric totals are intentionally different from the static prototype data.
-- The prototype-only analytics source toggle is not implemented because it is not a production requirement.
-- The narrow mobile brand crop visible in the source is retained for visual fidelity and does not cover the primary market controls.
-
-## Admin login form iteration — 2026-08-29
-
-- Source visual truth: `Heritage-Gallery (1).html`, the user-attached `696 × 593` login screenshot, and the explicit requested deltas: empty inputs, an in-field mobile hint, RTL input text, and no local Demo account panel.
-- Implementation screenshot: `frontend/qa/implementation-admin-login.png`.
-- Viewport and implementation pixels: `696 × 593` CSS px and `696 × 593` image px, device scale factor `1`; no density normalization was required.
-- State: Persian admin login before entry, followed by a successful real admin login interaction.
-
-### Full-view comparison evidence
-
-- The centered form, heading hierarchy, wine primary action, paper background, borders, widths, and vertical rhythm remain consistent with the supplied design.
-- The requested removal of the Demo panel leaves intentional whitespace below the primary action without disturbing the form's centered composition.
-
-### Focused-region comparison evidence
-
-- Both fields were checked at readable size in the full `696 × 593` capture, so a separate crop was not needed.
-- The mobile value and password are empty on initial render; the mobile hint starts on the right; computed direction for both inputs is `rtl`; the password reveal control stays on the left with reserved padding and no text overlap.
-
-### Required fidelity surfaces
-
-- Fonts and typography: passed; the existing Persian font hierarchy and weights are unchanged.
-- Spacing and layout rhythm: passed; field, label, CTA, and reveal-control spacing have no actionable drift.
-- Colors and visual tokens: passed; paper, ink, muted border, hint, and wine tokens remain aligned.
-- Image quality and asset fidelity: passed; this screen has no raster assets, and the reveal icon continues to use the existing icon library.
-- Copy and content: passed; mock credentials and the local Demo panel are absent, while the mobile hint is clear and non-sensitive.
-- Accessibility and behavior: passed; required fields, autocomplete semantics, dynamic reveal-label text, keyboard submission, session verification, and visible error handling remain functional.
-
-### Comparison history
-
-- Finding `[P1]`: mock credentials were prefilled and repeated in a local Demo panel, exposing non-production content in the core login experience.
-- Finding `[P2]`: `dir="ltr"` made both values start on the left and caused the password content to compete with the reveal icon.
-- Fix: initialized both values as empty, removed the Demo panel, added a descriptive mobile placeholder, applied RTL direction and right alignment, and retained inline-end padding for the reveal control.
-- Post-fix evidence: `frontend/qa/implementation-admin-login.png`; automated browser checks report `inputsEmpty`, `demoAbsent`, `mobileDirection=rtl`, `passwordDirection=rtl`, successful dashboard navigation, four metric cards, and zero browser errors.
+- The implementation reads the current database, whose first records include user/test uploads rather than the prototype carpet photos. Image subject and product/metric values therefore differ, while crop, loading, layout, and responsive presentation match. Database content was not overwritten during a frontend parity pass.
+- A few static remote image references in the standalone prototype are unavailable in the isolated browser profile. This is source-data availability, not an implementation regression.
 
 final result: passed

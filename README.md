@@ -6,6 +6,7 @@
 
 - `frontend/`: رابط عمومی `/Market` و پنل `/Admin`
 - `backend/`: API، احراز هویت، کاتالوگ، تصاویر و تحلیل رفتار
+- `docs/database-schema.md`: ERD، constraints، indexها و سیاست نگهداری دیتابیس
 - `design-qa.md`: گزارش نهایی تطبیق بصری با فایل طراحی
 
 ## اجرای محلی بک‌اند

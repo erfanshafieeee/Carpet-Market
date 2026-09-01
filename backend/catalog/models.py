@@ -163,6 +163,7 @@ class ProductImage(models.Model):
     alt_fa = models.CharField(max_length=220, blank=True)
     alt_en = models.CharField(max_length=220, blank=True)
     is_cover = models.BooleanField(default=False)
+    cover_marker = models.BooleanField(null=True, blank=True, editable=False, default=None)
     sort_order = models.PositiveSmallIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -170,11 +171,16 @@ class ProductImage(models.Model):
         ordering = ("sort_order", "id")
         constraints = [
             models.UniqueConstraint(
-                fields=("product",),
-                condition=models.Q(is_cover=True),
+                fields=("product", "cover_marker"),
                 name="one_cover_image_per_product",
             )
         ]
+
+    def save(self, *args, **kwargs):
+        self.cover_marker = True if self.is_cover else None
+        if kwargs.get("update_fields") is not None:
+            kwargs["update_fields"] = set(kwargs["update_fields"]) | {"cover_marker"}
+        return super().save(*args, **kwargs)
 
     def clean(self):
         if self.image and self.image.size > 15 * 1024 * 1024:

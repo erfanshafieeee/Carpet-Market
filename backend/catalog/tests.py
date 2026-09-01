@@ -4,6 +4,7 @@ from io import BytesIO
 
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.db import IntegrityError, transaction
 from django.test import TestCase
 from rest_framework.test import APIClient
 from PIL import Image as PillowImage
@@ -161,3 +162,16 @@ class MarketApiTests(TestCase):
         self.assertEqual(status_response.status_code, 200, status_response.data)
         self.assertEqual(delete_response.status_code, 204)
         self.assertEqual(self.product.images.count(), 1)
+
+    def test_database_allows_only_one_cover_per_product(self):
+        self.add_image()
+
+        with self.assertRaises(IntegrityError):
+            with transaction.atomic():
+                ProductImage.objects.create(
+                    product=self.product,
+                    image=uploaded_png("duplicate-cover.png"),
+                    is_cover=True,
+                )
+
+        self.assertEqual(self.product.images.filter(is_cover=True).count(), 1)

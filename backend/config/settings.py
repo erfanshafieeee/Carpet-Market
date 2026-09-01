@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import unquote, urlparse
 
 from dotenv import load_dotenv
 
@@ -65,18 +65,32 @@ def database_config():
     if not url:
         return {"ENGINE": "django.db.backends.sqlite3", "NAME": BASE_DIR / "db.sqlite3"}
     parsed = urlparse(url)
-    if parsed.scheme not in {"postgres", "postgresql"}:
-        raise ValueError("DATABASE_URL must use postgres:// or postgresql://")
-    return {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": parsed.path.lstrip("/"),
-        "USER": parsed.username,
-        "PASSWORD": parsed.password,
-        "HOST": parsed.hostname,
-        "PORT": parsed.port or 5432,
+    common = {
+        "NAME": unquote(parsed.path.lstrip("/")),
+        "USER": unquote(parsed.username or ""),
+        "PASSWORD": unquote(parsed.password or ""),
+        "HOST": parsed.hostname or "127.0.0.1",
         "CONN_MAX_AGE": 60,
-        "OPTIONS": {"connect_timeout": 5},
     }
+    if parsed.scheme in {"postgres", "postgresql"}:
+        return {
+            **common,
+            "ENGINE": "django.db.backends.postgresql",
+            "PORT": parsed.port or 5432,
+            "OPTIONS": {"connect_timeout": 5},
+        }
+    if parsed.scheme in {"mysql", "mysql2"}:
+        return {
+            **common,
+            "ENGINE": "django.db.backends.mysql",
+            "PORT": parsed.port or 3306,
+            "OPTIONS": {
+                "charset": "utf8mb4",
+                "init_command": "SET sql_mode='STRICT_TRANS_TABLES'",
+                "isolation_level": "read committed",
+            },
+        }
+    raise ValueError("DATABASE_URL must use postgres://, postgresql://, or mysql://")
 
 
 DATABASES = {"default": database_config()}

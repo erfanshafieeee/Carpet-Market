@@ -332,7 +332,10 @@ export function ProductFormClient() {
                 onChange={(e) => change("title_fa", e.target.value)}
               />
             </Field>
-            <Field label="عنوان انگلیسی *">
+            <Field
+              label="عنوان انگلیسی *"
+              hint="این عنوان در نسخه انگلیسی نمایش داده می‌شود."
+            >
               <input
                 required
                 dir="ltr"
@@ -340,7 +343,10 @@ export function ProductFormClient() {
                 onChange={(e) => change("title_en", e.target.value)}
               />
             </Field>
-            <Field label="قیمت هر تخته (تومان) *">
+            <Field
+              label="قیمت هر تخته (تومان) *"
+              hint="قیمت انگلیسی پس از اتصال منبع نرخ دلار محاسبه می‌شود."
+            >
               <input
                 required
                 min="1"
@@ -382,6 +388,11 @@ export function ProductFormClient() {
                 onChange={(e) => change("width_cm", e.target.value)}
               />
             </Field>
+            <div className="full area-preview">
+              {Number(form.length_cm) > 0 && Number(form.width_cm) > 0
+                ? `مساحت: ${new Intl.NumberFormat("fa-IR", { maximumFractionDigits: 2 }).format((Number(form.length_cm) * Number(form.width_cm)) / 10000)} مترمربع`
+                : "فقط فرش مستطیلی؛ طول و عرض می‌توانند اندازه دلخواه داشته باشند."}
+            </div>
             <RefSelect
               label="شهر بافت / تولید *"
               items={refs.city}
@@ -399,7 +410,10 @@ export function ProductFormClient() {
                 ["used", "دست‌دوم"],
               ]}
             />
-            <Field label="قدمت تقریبی (سال) *">
+            <Field
+              label="قدمت تقریبی (سال) *"
+              hint="صفر یعنی کمتر از یک سال؛ قدمت با استفاده‌شدن تفاوت دارد."
+            >
               <input
                 required
                 min="0"
@@ -482,7 +496,11 @@ export function ProductFormClient() {
           <label className="upload-zone">
             <FiUploadCloud />
             <strong>تصاویر فرش را انتخاب کنید</strong>
-            <span>حداقل ۱ و حداکثر ۱۰ تصویر · هر فایل حداکثر ۱۵ مگابایت</span>
+            <span>
+              حداقل ۱ و حداکثر ۱۰ تصویر · هر فایل حداکثر ۱۵ مگابایت
+              <br />
+              JPG، PNG یا WebP · تصویر کامل فرش با نور مناسب
+            </span>
             <input
               type="file"
               accept="image/jpeg,image/png,image/webp"
@@ -605,14 +623,17 @@ function FormSection({
 function Field({
   label,
   children,
+  hint,
 }: {
   label: string;
   children: React.ReactNode;
+  hint?: string;
 }) {
   return (
     <label className="field">
       <span>{label}</span>
       {children}
+      {hint && <small className="field-hint">{hint}</small>}
     </label>
   );
 }

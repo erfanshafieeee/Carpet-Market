@@ -3,11 +3,12 @@ from datetime import datetime, time, timedelta
 from django.db.models import Count, Q
 from django.utils import timezone
 from django.utils.dateparse import parse_date
-from rest_framework import permissions, status
+from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from catalog.models import Product
+from catalog.models import Product, Store
+from catalog.permissions import IsStoreAdmin
 
 from .models import AnalyticsEvent
 from .serializers import EventSerializer
@@ -39,11 +40,16 @@ def date_bounds(request):
 
 
 class DashboardView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsStoreAdmin]
 
     def get(self, request):
         start, end = date_bounds(request)
-        events = AnalyticsEvent.objects.filter(created_at__range=(start, end))
+        manageable_stores = Store.objects.manageable_by(request.user).filter(is_active=True)
+        manageable_products = Product.objects.manageable_by(request.user)
+        events = AnalyticsEvent.objects.filter(
+            store__in=manageable_stores,
+            created_at__range=(start, end),
+        )
         views = events.filter(event_type=AnalyticsEvent.EventType.PRODUCT_VIEWED)
         contacts = events.filter(event_type=AnalyticsEvent.EventType.CONTACT_CLICKED)
         calls = events.filter(event_type=AnalyticsEvent.EventType.PHONE_CALL_CLICKED)
@@ -54,17 +60,17 @@ class DashboardView(APIView):
         view_sessions = {session for session, _ in viewed_pairs}
         conversion = round(len(qualifying_sessions) / len(view_sessions) * 100, 1) if view_sessions else None
 
-        inventory = Product.objects.visible().values("inventory_status").annotate(count=Count("id"))
+        inventory = manageable_products.visible().values("inventory_status").annotate(count=Count("id"))
         inventory_map = {item["inventory_status"]: item["count"] for item in inventory}
         top_views = (
-            Product.objects.visible()
+            manageable_products.visible()
             .annotate(metric=Count("analytics_events", filter=Q(analytics_events__event_type=AnalyticsEvent.EventType.PRODUCT_VIEWED, analytics_events__created_at__range=(start, end))))
             .filter(metric__gt=0)
             .order_by("-metric")[:5]
             .values("public_id", "title_fa", "metric")
         )
         top_contacts = (
-            Product.objects.visible()
+            manageable_products.visible()
             .annotate(metric=Count("analytics_events", filter=Q(analytics_events__event_type=AnalyticsEvent.EventType.CONTACT_CLICKED, analytics_events__created_at__range=(start, end))))
             .filter(metric__gt=0)
             .order_by("-metric")[:5]

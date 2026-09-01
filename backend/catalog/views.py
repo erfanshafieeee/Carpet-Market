@@ -3,13 +3,14 @@ from __future__ import annotations
 from django.db import transaction
 from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404
-from rest_framework import filters, generics, permissions, status, viewsets
+from rest_framework import filters, generics, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .filters import ProductFilter
 from .models import ExchangeRate, Product, ProductImage, ReferenceItem, Store
+from .permissions import IsStoreAdmin
 from .serializers import (
     AdminProductSerializer,
     ExchangeRateSerializer,
@@ -95,7 +96,11 @@ class ReferenceListView(APIView):
 
 class StoreView(APIView):
     def get(self, request):
-        store = get_object_or_404(Store, is_active=True)
+        stores = Store.objects.filter(is_active=True).order_by("id")
+        public_id = request.query_params.get("public_id")
+        store = get_object_or_404(stores, public_id=public_id) if public_id else stores.first()
+        if store is None:
+            return Response({"detail": "فروشگاه فعالی وجود ندارد."}, status=status.HTTP_404_NOT_FOUND)
         return Response(StoreSerializer(store).data)
 
 
@@ -108,7 +113,7 @@ class ExchangeRateView(APIView):
 
 
 class AdminProductViewSet(viewsets.ModelViewSet):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsStoreAdmin]
     serializer_class = AdminProductSerializer
     lookup_field = "public_id"
     filter_backends = [filters.SearchFilter]
@@ -116,7 +121,8 @@ class AdminProductViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         queryset = (
-            Product.objects.visible()
+            Product.objects.manageable_by(self.request.user)
+            .visible()
             .select_related("store", "city", "weave", "pattern", "brand")
             .prefetch_related("materials", "colors", "images")
             .annotate(
@@ -130,7 +136,7 @@ class AdminProductViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(inventory_status=status_filter)
         if rug_type:
             queryset = queryset.filter(rug_type=rug_type)
-        return queryset
+        return queryset.order_by("-created_at", "-id")
 
     def perform_destroy(self, instance):
         instance.soft_delete()
@@ -209,7 +215,7 @@ class AdminProductViewSet(viewsets.ModelViewSet):
 
 
 class AdminRateStatusView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsStoreAdmin]
 
     def get(self, request):
         rate = ExchangeRate.current_real_rate()

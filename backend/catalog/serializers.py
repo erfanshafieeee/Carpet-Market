@@ -26,7 +26,7 @@ class ReferenceSerializer(serializers.ModelSerializer):
 class StoreSerializer(serializers.ModelSerializer):
     class Meta:
         model = Store
-        fields = ("id", "name_fa", "name_en", "city_fa", "city_en", "mobile_number", "address_fa", "address_en")
+        fields = ("id", "public_id", "name_fa", "name_en", "city_fa", "city_en", "mobile_number", "address_fa", "address_en")
 
 
 class ProductImageSerializer(serializers.ModelSerializer):
@@ -114,10 +114,18 @@ class AdminProductSerializer(serializers.ModelSerializer):
     view_count = serializers.IntegerField(read_only=True, default=0)
     contact_count = serializers.IntegerField(read_only=True, default=0)
     material_ids = serializers.PrimaryKeyRelatedField(
-        source="materials", queryset=ReferenceItem.objects.filter(category=ReferenceItem.Category.MATERIAL), many=True, write_only=True
+        source="materials",
+        queryset=ReferenceItem.objects.filter(category=ReferenceItem.Category.MATERIAL),
+        many=True,
+        write_only=True,
+        allow_empty=False,
     )
     color_ids = serializers.PrimaryKeyRelatedField(
-        source="colors", queryset=ReferenceItem.objects.filter(category=ReferenceItem.Category.COLOR), many=True, write_only=True
+        source="colors",
+        queryset=ReferenceItem.objects.filter(category=ReferenceItem.Category.COLOR),
+        many=True,
+        write_only=True,
+        allow_empty=False,
     )
 
     class Meta:
@@ -156,15 +164,24 @@ class AdminProductSerializer(serializers.ModelSerializer):
         )
         read_only_fields = ("id", "public_id", "created_at", "updated_at")
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        request = self.context.get("request")
+        if request:
+            self.fields["store"].queryset = Store.objects.manageable_by(request.user).filter(is_active=True)
+
     def validate(self, attrs):
         instance = self.instance
         rug_type = attrs.get("rug_type", getattr(instance, "rug_type", None))
-        if rug_type == Product.RugType.HANDMADE and not attrs.get("raj", getattr(instance, "raj", None)):
-            raise serializers.ValidationError({"raj": "رج برای فرش دستباف اجباری است."})
+        if rug_type == Product.RugType.HANDMADE:
+            if not attrs.get("raj", getattr(instance, "raj", None)):
+                raise serializers.ValidationError({"raj": "رج برای فرش دستباف اجباری است."})
+            attrs.update({"reeds": None, "density": None, "brand": None})
         if rug_type == Product.RugType.MACHINE:
             for field, label in (("reeds", "شانه"), ("density", "تراکم"), ("brand", "برند")):
                 if not attrs.get(field, getattr(instance, field, None)):
                     raise serializers.ValidationError({field: f"{label} برای فرش ماشینی اجباری است."})
+            attrs["raj"] = None
         return attrs
 
     @transaction.atomic

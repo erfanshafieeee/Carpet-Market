@@ -2,13 +2,27 @@ from __future__ import annotations
 
 import uuid
 
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import FileExtensionValidator, MinValueValidator
 from django.db import models
 from django.utils import timezone
 
 
+class StoreQuerySet(models.QuerySet):
+    def manageable_by(self, user):
+        if not user or not user.is_authenticated:
+            return self.none()
+        if user.is_superuser:
+            return self.all()
+        return self.filter(
+            memberships__user=user,
+            memberships__is_active=True,
+        ).distinct()
+
+
 class Store(models.Model):
+    public_id = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     name_fa = models.CharField(max_length=160)
     name_en = models.CharField(max_length=160)
     city_fa = models.CharField(max_length=120)
@@ -17,9 +31,44 @@ class Store(models.Model):
     address_fa = models.TextField(blank=True)
     address_en = models.TextField(blank=True)
     is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(default=timezone.now, editable=False)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    objects = StoreQuerySet.as_manager()
+
+    class Meta:
+        ordering = ("id",)
+        indexes = [models.Index(fields=("is_active",), name="store_active_idx")]
 
     def __str__(self):
         return self.name_fa
+
+
+class StoreMembership(models.Model):
+    class Role(models.TextChoices):
+        OWNER = "owner", "Owner"
+        MANAGER = "manager", "Manager"
+
+    store = models.ForeignKey(Store, on_delete=models.CASCADE, related_name="memberships")
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="store_memberships")
+    role = models.CharField(max_length=16, choices=Role.choices, default=Role.MANAGER)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(default=timezone.now, editable=False)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("store_id", "user_id")
+        constraints = [
+            models.UniqueConstraint(fields=("store", "user"), name="unique_store_user"),
+            models.CheckConstraint(condition=models.Q(role__in=("owner", "manager")), name="membership_valid_role"),
+        ]
+        indexes = [
+            models.Index(fields=("user", "is_active"), name="member_user_active_idx"),
+            models.Index(fields=("store", "is_active"), name="member_store_active_idx"),
+        ]
+
+    def __str__(self):
+        return f"{self.store} / {self.user} ({self.role})"
 
 
 class ReferenceItem(models.Model):
@@ -40,13 +89,29 @@ class ReferenceItem(models.Model):
 
     class Meta:
         ordering = ("category", "sort_order", "label_fa")
-        constraints = [models.UniqueConstraint(fields=("category", "code"), name="unique_reference_code_per_category")]
+        constraints = [
+            models.UniqueConstraint(fields=("category", "code"), name="unique_reference_code_per_category"),
+            models.CheckConstraint(
+                condition=models.Q(category__in=("city", "weave", "material", "color", "pattern", "brand")),
+                name="reference_valid_category",
+            ),
+        ]
 
     def __str__(self):
         return f"{self.category}: {self.label_fa}"
 
 
 class ProductQuerySet(models.QuerySet):
+    def manageable_by(self, user):
+        if not user or not user.is_authenticated:
+            return self.none()
+        if user.is_superuser:
+            return self
+        return self.filter(
+            store__memberships__user=user,
+            store__memberships__is_active=True,
+        ).distinct()
+
     def visible(self):
         return self.filter(deleted_at__isnull=True)
 
@@ -86,7 +151,7 @@ class Product(models.Model):
     width_cm = models.PositiveIntegerField(validators=[MinValueValidator(1)])
     rug_type = models.CharField(max_length=16, choices=RugType.choices)
     condition = models.CharField(max_length=8, choices=Condition.choices)
-    approximate_age_years = models.PositiveIntegerField(default=0)
+    approximate_age_years = models.PositiveIntegerField()
     inventory_status = models.CharField(max_length=16, choices=InventoryStatus.choices, default=InventoryStatus.AVAILABLE)
     city = models.ForeignKey(ReferenceItem, on_delete=models.PROTECT, related_name="city_products")
     weave = models.ForeignKey(ReferenceItem, on_delete=models.PROTECT, related_name="weave_products")
@@ -109,6 +174,56 @@ class Product(models.Model):
             models.Index(fields=("inventory_status", "deleted_at")),
             models.Index(fields=("rug_type", "inventory_status")),
             models.Index(fields=("price_toman",)),
+            models.Index(
+                fields=("store", "deleted_at", "inventory_status", "created_at"),
+                name="prod_store_state_new_idx",
+            ),
+            models.Index(
+                fields=("store", "deleted_at", "inventory_status", "price_toman"),
+                name="prod_store_state_price_idx",
+            ),
+        ]
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(rug_type__in=("handmade", "machine")),
+                name="product_valid_rug_type",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(condition__in=("new", "used")),
+                name="product_valid_condition",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(inventory_status__in=("available", "reserved", "sold")),
+                name="product_valid_inventory",
+            ),
+            models.CheckConstraint(
+                condition=(
+                    models.Q(price_toman__gt=0)
+                    & models.Q(length_cm__gt=0)
+                    & models.Q(width_cm__gt=0)
+                    & models.Q(approximate_age_years__gte=0)
+                ),
+                name="product_positive_values",
+            ),
+            models.CheckConstraint(
+                condition=(
+                    models.Q(
+                        rug_type="handmade",
+                        raj__isnull=False,
+                        reeds__isnull=True,
+                        density__isnull=True,
+                        brand__isnull=True,
+                    )
+                    | models.Q(
+                        rug_type="machine",
+                        raj__isnull=True,
+                        reeds__isnull=False,
+                        density__isnull=False,
+                        brand__isnull=False,
+                    )
+                ),
+                name="product_valid_type_specs",
+            ),
         ]
 
     def clean(self):
@@ -173,7 +288,18 @@ class ProductImage(models.Model):
             models.UniqueConstraint(
                 fields=("product", "cover_marker"),
                 name="one_cover_image_per_product",
-            )
+            ),
+            models.CheckConstraint(
+                condition=(
+                    models.Q(is_cover=True, cover_marker=True)
+                    | models.Q(is_cover=False, cover_marker__isnull=True)
+                ),
+                name="image_cover_marker_valid",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(sort_order__gte=0, sort_order__lte=9),
+                name="image_sort_order_range",
+            ),
         ]
 
     def save(self, *args, **kwargs):
@@ -198,6 +324,12 @@ class ExchangeRate(models.Model):
 
     class Meta:
         ordering = ("-quoted_at", "-id")
+        indexes = [
+            models.Index(fields=("is_active", "is_demo", "quoted_at"), name="rate_active_quote_idx"),
+        ]
+        constraints = [
+            models.CheckConstraint(condition=models.Q(rate_toman__gt=0), name="exchange_rate_positive"),
+        ]
 
     @classmethod
     def current_real_rate(cls):

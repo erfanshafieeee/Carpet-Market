@@ -11,7 +11,7 @@ from PIL import Image as PillowImage
 
 from analytics.models import AnalyticsEvent
 
-from .models import Product, ProductImage, ReferenceItem, Store
+from .models import Product, ProductImage, ReferenceItem, Store, StoreMembership
 
 
 TINY_PNG = base64.b64decode(
@@ -49,6 +49,7 @@ class MarketApiTests(TestCase):
             width_cm=200,
             rug_type=Product.RugType.HANDMADE,
             condition=Product.Condition.NEW,
+            approximate_age_years=0,
             city=self.city,
             weave=self.weave,
             pattern=self.pattern,
@@ -72,6 +73,15 @@ class MarketApiTests(TestCase):
             is_cover=True,
         )
 
+    def admin_user(self, mobile="09121111111"):
+        user = get_user_model().objects.create_user(
+            mobile,
+            "StrongPassword123!",
+            is_staff=True,
+        )
+        StoreMembership.objects.create(store=self.store, user=user)
+        return user
+
     def test_product_is_hidden_until_it_has_an_image(self):
         response = self.client.get("/api/v1/products/")
         self.assertEqual(response.status_code, 200)
@@ -92,7 +102,8 @@ class MarketApiTests(TestCase):
                 format="json",
             )
             self.assertEqual(response.status_code, 201)
-        user = get_user_model().objects.create_user("09121111111", "StrongPassword123!")
+        self.assertFalse(AnalyticsEvent.objects.filter(store__isnull=True).exists())
+        user = self.admin_user()
         self.client.force_authenticate(user)
         response = self.client.get("/api/v1/analytics/dashboard/?range=7")
         self.assertEqual(response.status_code, 200)
@@ -105,10 +116,11 @@ class MarketApiTests(TestCase):
         AnalyticsEvent.objects.create(
             event_type="product_viewed",
             session_id=uuid.uuid4(),
+            store=self.store,
             product=self.product,
             language="fa",
         )
-        user = get_user_model().objects.create_user("09121111111", "StrongPassword123!")
+        user = self.admin_user()
         self.client.force_authenticate(user)
         response = self.client.delete(f"/api/v1/admin/products/{self.product.public_id}/")
         self.assertEqual(response.status_code, 204)
@@ -117,7 +129,7 @@ class MarketApiTests(TestCase):
         self.assertEqual(self.product.analytics_events.count(), 1)
 
     def test_admin_can_upload_multiple_product_images(self):
-        user = get_user_model().objects.create_user("09121111111", "StrongPassword123!")
+        user = self.admin_user()
         self.client.force_authenticate(user)
         url = f"/api/v1/admin/products/{self.product.public_id}/images/"
 
@@ -175,3 +187,76 @@ class MarketApiTests(TestCase):
                 )
 
         self.assertEqual(self.product.images.filter(is_cover=True).count(), 1)
+
+    def test_database_rejects_incompatible_product_specs(self):
+        with self.assertRaises(IntegrityError):
+            with transaction.atomic():
+                Product.objects.filter(pk=self.product.pk).update(rug_type=Product.RugType.MACHINE)
+
+    def test_staff_without_store_membership_cannot_access_admin_products(self):
+        user = get_user_model().objects.create_user(
+            "09122222222",
+            "StrongPassword123!",
+            is_staff=True,
+        )
+        self.client.force_authenticate(user)
+
+        response = self.client.get("/api/v1/admin/products/")
+
+        self.assertEqual(response.status_code, 403)
+
+    def test_admin_products_are_scoped_to_store_membership(self):
+        other_store = Store.objects.create(
+            name_fa="فروشگاه دیگر",
+            name_en="Other Store",
+            city_fa="تهران",
+            city_en="Tehran",
+            mobile_number="09123333333",
+        )
+        Product.objects.create(
+            store=other_store,
+            title_fa="فرش فروشگاه دیگر",
+            title_en="Other Store Carpet",
+            price_toman=90_000_000,
+            length_cm=300,
+            width_cm=200,
+            rug_type=Product.RugType.HANDMADE,
+            condition=Product.Condition.NEW,
+            approximate_age_years=0,
+            city=self.city,
+            weave=self.weave,
+            pattern=self.pattern,
+            raj=40,
+        )
+        self.client.force_authenticate(self.admin_user())
+
+        response = self.client.get("/api/v1/admin/products/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["count"], 1)
+        self.assertEqual(response.data["results"][0]["public_id"], str(self.product.public_id))
+
+    def test_product_event_rejects_mismatched_store(self):
+        self.add_image()
+        other_store = Store.objects.create(
+            name_fa="فروشگاه دیگر",
+            name_en="Other Store",
+            city_fa="تهران",
+            city_en="Tehran",
+            mobile_number="09123333333",
+        )
+
+        response = self.client.post(
+            "/api/v1/analytics/events/",
+            {
+                "event_type": "product_viewed",
+                "session_id": uuid.uuid4(),
+                "store_public_id": other_store.public_id,
+                "product_public_id": self.product.public_id,
+                "language": "fa",
+                "properties": {},
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 400)

@@ -10,7 +10,7 @@ from django.core.management.base import BaseCommand
 from django.db import transaction
 
 from analytics.models import AnalyticsEvent
-from catalog.models import Product, ProductImage, ReferenceItem, Store
+from catalog.models import Product, ProductImage, ReferenceItem, Store, StoreMembership
 
 
 REFERENCE_DATA = {
@@ -141,6 +141,11 @@ class Command(BaseCommand):
         if created or os.getenv("RESET_DEMO_ADMIN_PASSWORD", "false").lower() == "true":
             user.set_password(password)
             user.save(update_fields=["password"])
+        StoreMembership.objects.update_or_create(
+            store=store,
+            user=user,
+            defaults={"role": StoreMembership.Role.MANAGER, "is_active": True},
+        )
 
         if not AnalyticsEvent.objects.exists():
             event_rows = []
@@ -149,17 +154,17 @@ class Command(BaseCommand):
                 session_id = uuid.uuid5(uuid.NAMESPACE_URL, f"irancarpet-session:{i}")
                 event_rows.extend(
                     [
-                        AnalyticsEvent(event_type="market_viewed", session_id=session_id, language="fa"),
-                        AnalyticsEvent(event_type="product_viewed", session_id=session_id, product=product, language="fa"),
+                        AnalyticsEvent(event_type="market_viewed", session_id=session_id, store=store, language="fa"),
+                        AnalyticsEvent(event_type="product_viewed", session_id=session_id, store=store, product=product, language="fa"),
                     ]
                 )
                 if i % 4 == 0:
-                    event_rows.append(AnalyticsEvent(event_type="contact_clicked", session_id=session_id, product=product, language="fa"))
+                    event_rows.append(AnalyticsEvent(event_type="contact_clicked", session_id=session_id, store=store, product=product, language="fa"))
                 if i % 8 == 0:
-                    event_rows.append(AnalyticsEvent(event_type="phone_call_clicked", session_id=session_id, product=product, language="fa"))
+                    event_rows.append(AnalyticsEvent(event_type="phone_call_clicked", session_id=session_id, store=store, product=product, language="fa"))
                 if i % 5 == 0:
                     query = ["دستباف تبریز", "نایین", "فرش ابریشم", "کاشان", "قرمز"][(i // 5) % 5]
-                    event_rows.append(AnalyticsEvent(event_type="search_performed", session_id=session_id, language="fa", query=query))
+                    event_rows.append(AnalyticsEvent(event_type="search_performed", session_id=session_id, store=store, language="fa", query=query))
             AnalyticsEvent.objects.bulk_create(event_rows)
 
         self.stdout.write(self.style.SUCCESS("Demo database seeded."))

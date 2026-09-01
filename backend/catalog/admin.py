@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import ExchangeRate, Product, ProductImage, ReferenceItem, Store
+from .models import ExchangeRate, Product, ProductImage, ReferenceItem, Store, StoreMembership
 
 
 class ProductImageInline(admin.TabularInline):
@@ -17,6 +17,7 @@ class ProductAdmin(admin.ModelAdmin):
 
 
 admin.site.register(Store)
+admin.site.register(StoreMembership)
 admin.site.register(ReferenceItem)
 admin.site.register(ExchangeRate)
 

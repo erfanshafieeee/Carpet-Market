@@ -139,13 +139,14 @@ class AdminProductViewSet(viewsets.ModelViewSet):
     @transaction.atomic
     def upload_image(self, request, *args, **kwargs):
         product = self.get_object()
+        Product.objects.select_for_update().get(pk=product.pk)
         image_count = product.images.count()
         if image_count >= 10:
             return Response({"error": {"details": {"image": ["حداکثر ۱۰ تصویر مجاز است."]}}}, status=status.HTTP_400_BAD_REQUEST)
         serializer = ProductImageUploadSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         if serializer.validated_data.get("is_cover"):
-            product.images.update(is_cover=False)
+            product.images.update(is_cover=False, cover_marker=None)
         image = serializer.save(product=product)
         if image_count == 0 and not image.is_cover:
             image.is_cover = True
@@ -153,8 +154,10 @@ class AdminProductViewSet(viewsets.ModelViewSet):
         return Response(ProductImageSerializer(image, context={"request": request}).data, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=["delete"], url_path=r"images/(?P<image_id>[^/.]+)")
+    @transaction.atomic
     def delete_image(self, request, image_id=None, *args, **kwargs):
         product = self.get_object()
+        Product.objects.select_for_update().get(pk=product.pk)
         if product.images.count() <= 1:
             return Response(
                 {"error": {"details": {"image": ["محصول منتشرشده باید حداقل یک تصویر داشته باشد."]}}},
@@ -171,10 +174,12 @@ class AdminProductViewSet(viewsets.ModelViewSet):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=True, methods=["patch"], url_path=r"images/(?P<image_id>[^/.]+)/cover")
+    @transaction.atomic
     def set_cover(self, request, image_id=None, *args, **kwargs):
         product = self.get_object()
+        Product.objects.select_for_update().get(pk=product.pk)
         image = get_object_or_404(ProductImage, product=product, pk=image_id)
-        product.images.update(is_cover=False)
+        product.images.update(is_cover=False, cover_marker=None)
         image.is_cover = True
         image.save(update_fields=["is_cover"])
         return Response(ProductImageSerializer(image, context={"request": request}).data)

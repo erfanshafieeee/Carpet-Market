@@ -23,7 +23,7 @@ python manage.py seed_demo
 python manage.py runserver 127.0.0.1:8000
 ```
 
-PostgreSQL دیتابیس اصلی پروژه است. مقدار `DATABASE_URL` در `backend/.env.example` آماده است. اگر در محیط توسعه این متغیر حذف یا خالی شود، فقط برای اجرای سریع محلی و تست‌ها از SQLite استفاده می‌شود.
+پروژه از MySQL و PostgreSQL پشتیبانی می‌کند و نمونه محلی `DATABASE_URL` در `backend/.env.example` برای MySQL آماده است. اگر این متغیر حذف یا خالی شود، فقط برای اجرای سریع محلی از SQLite استفاده می‌شود.
 
 ## اجرای محلی فرانت
 

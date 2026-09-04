@@ -2,11 +2,14 @@
 
 نسخه V1 بازار فرش با ویترین دوزبانه و پنل فروشنده فارسی. فرانت با Next.js، React و TypeScript و بک‌اند با Django و Django REST Framework پیاده‌سازی شده است.
 
+نسخه پایدار فعلی: `1.0.0` با Git tag برابر `v1.0.0`. روش مشاهده، بازیابی و نگهداری نسخه در `docs/versioning.md` مستند شده است.
+
 ## ساختار
 
 - `frontend/`: رابط عمومی `/Market` و پنل `/Admin`
 - `backend/`: API، احراز هویت، کاتالوگ، تصاویر و تحلیل رفتار
 - `docs/database-schema.md`: ERD، constraints، indexها و سیاست نگهداری دیتابیس
+- `docs/versioning.md`: سیاست نسخه‌بندی و دستورهای امن بازگشت به V1
 - `design-qa.md`: گزارش نهایی تطبیق بصری با فایل طراحی
 
 ## اجرای محلی بک‌اند

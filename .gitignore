@@ -13,3 +13,4 @@ frontend/qa/chrome-*/
 *.tsbuildinfo
 coverage/
 .pytest_cache/
+.local-releases/

@@ -96,7 +96,7 @@ class ReferenceListView(APIView):
 
 class StoreView(APIView):
     def get(self, request):
-        stores = Store.objects.filter(is_active=True).order_by("id")
+        stores = Store.objects.filter(is_active=True).prefetch_related("branches").order_by("id")
         public_id = request.query_params.get("public_id")
         store = get_object_or_404(stores, public_id=public_id) if public_id else stores.first()
         if store is None:

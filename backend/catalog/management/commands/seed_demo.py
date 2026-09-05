@@ -10,10 +10,27 @@ from django.core.management.base import BaseCommand
 from django.db import transaction
 
 from analytics.models import AnalyticsEvent
-from catalog.models import Product, ProductImage, ReferenceItem, Store, StoreMembership
+from catalog.models import Product, ProductImage, ReferenceItem, Store, StoreBranch, StoreMembership
+from sell_requests.models import SellRequest, SellRequestImage, SellRequestNote, SellRequestStatusHistory
 
 
 REFERENCE_DATA = {
+    "province": [
+        ("tehran", "تهران", "Tehran"), ("alborz", "البرز", "Alborz"),
+        ("east-azerbaijan", "آذربایجان شرقی", "East Azerbaijan"), ("west-azerbaijan", "آذربایجان غربی", "West Azerbaijan"),
+        ("ardabil", "اردبیل", "Ardabil"), ("isfahan", "اصفهان", "Isfahan"), ("ilam", "ایلام", "Ilam"),
+        ("bushehr", "بوشهر", "Bushehr"), ("chaharmahal", "چهارمحال و بختیاری", "Chaharmahal and Bakhtiari"),
+        ("south-khorasan", "خراسان جنوبی", "South Khorasan"), ("razavi-khorasan", "خراسان رضوی", "Razavi Khorasan"),
+        ("north-khorasan", "خراسان شمالی", "North Khorasan"), ("khuzestan", "خوزستان", "Khuzestan"),
+        ("zanjan", "زنجان", "Zanjan"), ("semnan", "سمنان", "Semnan"),
+        ("sistan", "سیستان و بلوچستان", "Sistan and Baluchestan"), ("fars", "فارس", "Fars"),
+        ("qazvin", "قزوین", "Qazvin"), ("qom", "قم", "Qom"), ("kurdistan", "کردستان", "Kurdistan"),
+        ("kerman", "کرمان", "Kerman"), ("kermanshah", "کرمانشاه", "Kermanshah"),
+        ("kohgiluyeh", "کهگیلویه و بویراحمد", "Kohgiluyeh and Boyer-Ahmad"), ("golestan", "گلستان", "Golestan"),
+        ("gilan", "گیلان", "Gilan"), ("lorestan", "لرستان", "Lorestan"), ("mazandaran", "مازندران", "Mazandaran"),
+        ("markazi", "مرکزی", "Markazi"), ("hormozgan", "هرمزگان", "Hormozgan"),
+        ("hamedan", "همدان", "Hamadan"), ("yazd", "یزد", "Yazd"),
+    ],
     "city": [
         ("kashan", "کاشان", "Kashan"),
         ("nain", "نایین", "Nain"),
@@ -66,6 +83,15 @@ PRODUCTS = [
     ("heriz", "فرش هریس هندسی", "Heriz geometric rug", 76_000_000, 330, 230, "heriz", "available", "handmade", ["wool"], ["red", "navy"], "geometric", 35, 12),
 ]
 
+SELL_REQUESTS = [
+    ("SELL-7F2M9A", "needs_review", "handmade", "tehran", "09121234567", "tabriz", "یادگار خانوادگی؛ گوشه پایین کمی ساییدگی دارد."),
+    ("SELL-3K8R1P", "in_progress", "handmade", "isfahan", "09351234567", "nain", "برای هماهنگی بازدید بعدازظهر تماس بگیرید."),
+    ("SELL-9Q4D6H", "purchased", "machine", "alborz", "09191234567", "machine", "فرش کم‌کارکرد و بدون پارگی است."),
+    ("SELL-5W7N2C", "rejected", "handmade", "fars", "09021234567", "qom", "تصاویر برای بررسی اولیه ارسال شده‌اند."),
+    ("SELL-8B1T4L", "needs_review", "handmade", "razavi-khorasan", "09911234567", "heriz", "رج و قدمت دقیق را نمی‌دانم."),
+    ("SELL-2J6V8S", "in_progress", "machine", "qom", "09101234567", "kashan", "برند کاشان، تمیز و سالم."),
+]
+
 
 class Command(BaseCommand):
     help = "Seed a repeatable demo store, references, products, images, admin and analytics."
@@ -75,16 +101,29 @@ class Command(BaseCommand):
         store, _ = Store.objects.update_or_create(
             id=1,
             defaults={
-                "name_fa": "فروشگاه فرش ایران",
-                "name_en": "Iran Carpet Gallery",
+                "name_fa": "فرش شبستری",
+                "name_en": "Shabestari Carpet",
                 "city_fa": "تهران",
                 "city_en": "Tehran",
-                "mobile_number": "+989120000000",
-                "address_fa": "تهران، بازار فرش ایران — نشانی نمایشی",
-                "address_en": "Iran Carpet Market, Tehran — demo address",
+                "mobile_number": "09381555130",
+                "manager_mobile_number": "09121099456",
+                "domain": "shabestaricarpet",
+                "address_fa": "تهران",
+                "address_en": "Tehran",
                 "is_active": True,
             },
         )
+        branches = [
+            ("شعبه اول", "Branch 1", "بازار بزرگ، خیابان خیام، کوچه کبابی‌ها، سرای ناصری، پلاک ۱۶", "Tehran Grand Bazaar, Khayyam St., Kababi-ha Alley, Naseri Sara, No. 16"),
+            ("شعبه دوم", "Branch 2", "بازار بزرگ، کوچه کفاش‌ها، سرای روحانی نو، روبه‌روی بانک کشاورزی، طبقه دوم", "Tehran Grand Bazaar, Kafash-ha Alley, Rohani-ye Now Sara, opposite Bank Keshavarzi, second floor"),
+            ("شعبه سوم", "Branch 3", "یوسف‌آباد، خیابان اسدآبادی، بین کوچه شهید زینالی و کوچه بیست‌وپنجم", "Yousef Abad, Asad Abadi St., between Shahid Zeinali Alley and 25th Alley"),
+        ]
+        for order, (name_fa, name_en, address_fa, address_en) in enumerate(branches):
+            StoreBranch.objects.update_or_create(
+                store=store,
+                sort_order=order,
+                defaults={"name_fa": name_fa, "name_en": name_en, "address_fa": address_fa, "address_en": address_en, "is_active": True},
+            )
         refs = {}
         for category, items in REFERENCE_DATA.items():
             for order, (code, fa, en) in enumerate(items):
@@ -146,6 +185,53 @@ class Command(BaseCommand):
             user=user,
             defaults={"role": StoreMembership.Role.MANAGER, "is_active": True},
         )
+
+        for index, (tracking, request_status, rug_type, province, phone, image_key, description) in enumerate(SELL_REQUESTS):
+            is_machine = rug_type == "machine"
+            sell_request, created_request = SellRequest.objects.update_or_create(
+                tracking_code=tracking,
+                defaults={
+                    "store": store,
+                    "rug_type": rug_type,
+                    "phone_number": phone,
+                    "province": refs[("province", province)],
+                    "address": "نشانی دقیق هنگام تماس اعلام می‌شود." if index % 2 else "تهران، محدوده مرکزی",
+                    "city": refs[("city", "kashan" if is_machine else image_key)],
+                    "length_cm": 300 if is_machine else max(190, 350 - index * 15),
+                    "width_cm": 200 if is_machine else max(130, 240 - index * 10),
+                    "condition": "used" if index % 3 else "new",
+                    "approximate_age_years": None if is_machine else 8 + index * 3,
+                    "pattern": refs[("pattern", ["medallion", "afshan", "mahi", "geometric"][index % 4])],
+                    "raj": None if is_machine else 35 + index * 3,
+                    "reeds": 1200 if is_machine else None,
+                    "density": 3600 if is_machine else None,
+                    "brand": refs[("brand", "kashan")] if is_machine else None,
+                    "description": description,
+                    "status": request_status,
+                    "rejection_reason": "outside_scope" if request_status == "rejected" else "",
+                    "rejection_note": "",
+                    "utm_source": ("instagram", "direct", "google")[index % 3],
+                },
+            )
+            sell_request.materials.set([refs[("material", "acrylic" if is_machine else "wool")]])
+            sell_request.colors.set([refs[("color", "ivory" if index % 2 else "navy")]])
+            if not sell_request.images.exists():
+                source = asset_dir / f"{image_key}.webp"
+                with source.open("rb") as image_file:
+                    request_image = SellRequestImage(sell_request=sell_request, sort_order=0)
+                    request_image.image.save(f"{image_key}.webp", File(image_file), save=True)
+            if created_request:
+                SellRequestStatusHistory.objects.create(sell_request=sell_request, from_status="", to_status="needs_review")
+                if request_status != "needs_review":
+                    SellRequestStatusHistory.objects.create(
+                        sell_request=sell_request,
+                        from_status="needs_review",
+                        to_status=request_status,
+                        rejection_reason=sell_request.rejection_reason,
+                        changed_by=user,
+                    )
+            if tracking == "SELL-3K8R1P" and not sell_request.notes.exists():
+                SellRequestNote.objects.create(sell_request=sell_request, author=user, body="مالک ترجیح می‌دهد بازدید عصر انجام شود.")
 
         if not AnalyticsEvent.objects.exists():
             event_rows = []

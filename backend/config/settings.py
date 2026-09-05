@@ -27,6 +27,7 @@ INSTALLED_APPS = [
     "accounts",
     "catalog",
     "analytics",
+    "sell_requests",
 ]
 
 MIDDLEWARE = [
@@ -133,10 +134,10 @@ REST_FRAMEWORK = {
     "DEFAULT_FILTER_BACKENDS": ["django_filters.rest_framework.DjangoFilterBackend"],
     "EXCEPTION_HANDLER": "config.exceptions.api_exception_handler",
     "DEFAULT_THROTTLE_CLASSES": ["rest_framework.throttling.ScopedRateThrottle"],
-    "DEFAULT_THROTTLE_RATES": {"login": "10/minute", "analytics": "120/minute"},
+    "DEFAULT_THROTTLE_RATES": {"login": "10/minute", "analytics": "120/minute", "sell_submit": "10/hour"},
 }
 
-DATA_UPLOAD_MAX_MEMORY_SIZE = 16 * 1024 * 1024
+DATA_UPLOAD_MAX_MEMORY_SIZE = 64 * 1024 * 1024
 FILE_UPLOAD_MAX_MEMORY_SIZE = 16 * 1024 * 1024
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = "DENY"

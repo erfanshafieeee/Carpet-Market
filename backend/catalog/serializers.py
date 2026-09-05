@@ -3,7 +3,7 @@ from __future__ import annotations
 from django.db import transaction
 from rest_framework import serializers
 
-from .models import ExchangeRate, Product, ProductImage, ReferenceItem, Store
+from .models import ExchangeRate, Product, ProductImage, ReferenceItem, Store, StoreBranch
 
 
 class LocalizedReferenceSerializer(serializers.ModelSerializer):
@@ -23,10 +23,31 @@ class ReferenceSerializer(serializers.ModelSerializer):
         fields = ("id", "category", "code", "label_fa", "label_en", "sort_order")
 
 
+class StoreBranchSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = StoreBranch
+        fields = ("id", "name_fa", "name_en", "address_fa", "address_en", "sort_order")
+
+
 class StoreSerializer(serializers.ModelSerializer):
+    branches = StoreBranchSerializer(many=True, read_only=True)
+
     class Meta:
         model = Store
-        fields = ("id", "public_id", "name_fa", "name_en", "city_fa", "city_en", "mobile_number", "address_fa", "address_en")
+        fields = (
+            "id",
+            "public_id",
+            "name_fa",
+            "name_en",
+            "city_fa",
+            "city_en",
+            "mobile_number",
+            "manager_mobile_number",
+            "domain",
+            "address_fa",
+            "address_en",
+            "branches",
+        )
 
 
 class ProductImageSerializer(serializers.ModelSerializer):

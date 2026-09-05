@@ -9,6 +9,7 @@ urlpatterns = [
     path("api/v1/auth/", include("accounts.urls")),
     path("api/v1/", include("catalog.urls")),
     path("api/v1/analytics/", include("analytics.urls")),
+    path("api/v1/", include("sell_requests.urls")),
 ]
 
 if settings.DEBUG:

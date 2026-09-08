@@ -1,4 +1,25 @@
-# Design QA — full frontend parity
+# Design QA — V2 release parity
+
+## V2 final verification
+
+- Source visual truth: `PRD&DESIGN/V2/Design-v2.html`.
+- Evidence: `frontend/qa/v2-design-parity/comparison/`; every canvas shows the source on the left and the implementation on the right.
+- Viewports: desktop `1440 × 1000` and mobile `390 × 844`, DPR `1`.
+- Coverage: 15 paired captures — Market, product detail, sell steps 1/2/3, success, admin login, both dashboard tabs, request list/detail, product list/form, Market mobile, and sell mobile.
+- Browser result: 15 source captures, 15 implementation captures, 15 comparisons, and no console/runtime errors.
+- Functional browser result: authenticated request list/detail/filter/status/history and both dashboard tabs passed against the local Django/MySQL stack.
+- Accepted content-only difference: the implementation displays current local database images and metrics rather than the prototype fixtures; layout, crop, hierarchy, state styling, and responsive behavior were evaluated independently.
+- Intentional product override: the prototype Demo-credential box remains absent from the implementation as explicitly requested.
+
+### V2 resolved findings
+
+- `[P1]` The initial sell page jumped past its hero, the workspace used a boxed legacy layout, and mobile inherited desktop grid sizing. Fixed initial focus/scroll behavior, aligned the 265px dark step rail and separate white form, and restored a single-column mobile layout.
+- `[P1]` The Market sell banner lacked the prototype's wine outer frame and compact inner panel. Tokens, spacing, logo scale, typography, CTA, and mobile composition now match the final design cascade.
+- `[P1]` Public/admin brand copy and root metadata still contained V1 naming. Updated to Shabestari Carpet / فرش شبستری and added an explicit device viewport.
+- `[P2]` Product detail did not include the V2 public footer. Added the store-aware bilingual footer.
+- Final re-capture found no remaining actionable `P0`, `P1`, or `P2` issue. Mobile diagnostics report no overflowing element, and browser errors are empty.
+
+## Archived V1 comparison
 
 ## Comparison setup
 

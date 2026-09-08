@@ -17,9 +17,9 @@ export async function generateMetadata({ params, searchParams }: { params: Promi
   const [{ publicId }, search] = await Promise.all([params, searchParams]);
   const language = search.lang === "en" ? "en" : "fa";
   const product = await getProduct(publicId, language);
-  if (!product) return { title: language === "fa" ? "فرش | بازار فرش ایران" : "Carpet | Iran Carpet Market" };
+  if (!product) return { title: language === "fa" ? "فرش | فرش شبستری" : "Carpet | Shabestari Carpet" };
   return {
-    title: `${product.title} | ${language === "fa" ? "بازار فرش ایران" : "Iran Carpet Market"}`,
+    title: `${product.title} | ${language === "fa" ? "فرش شبستری" : "Shabestari Carpet"}`,
     description: product.description || `${product.city.label} · ${product.length_cm} × ${product.width_cm} cm`,
     openGraph: product.images[0] ? { images: [product.images[0].url] } : undefined,
   };

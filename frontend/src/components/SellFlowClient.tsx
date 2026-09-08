@@ -38,9 +38,12 @@ export function SellFlowClient({ references, store }: { references: References; 
   const workspace = useRef<HTMLElement>(null);
   const heading = useRef<HTMLHeadingElement>(null);
   const started = useRef(false);
+  const previousStep = useRef(step);
 
   useEffect(() => { if (!started.current) { started.current = true; track("sell_flow_started", language, attribution(params)); } }, [language, params]);
   useEffect(() => {
+    if (previousStep.current === step) return;
+    previousStep.current = step;
     if (!workspace.current || !heading.current) return;
     const frame = requestAnimationFrame(() => {
       heading.current?.focus({ preventScroll: true });

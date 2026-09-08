@@ -5,6 +5,7 @@ import { useParams, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { FiChevronLeft, FiChevronRight, FiGrid, FiMapPin, FiMaximize2, FiPhone, FiX } from "react-icons/fi";
 import { PublicHeader } from "./PublicHeader";
+import { PublicFooter } from "./PublicFooter";
 import { StatusBadge } from "./StatusBadge";
 import { apiFetch } from "@/lib/api";
 import { track } from "@/lib/analytics";
@@ -110,6 +111,7 @@ export function ProductDetailClient({ initialProduct = null }: { initialProduct?
           </section>
         </div>
       </main>
+      <PublicFooter language={language} store={product.store} />
       <div className="mobile-contact-bar"><div><strong>{number(language, product.price_toman)}</strong><small>{t(language, "toman")}</small></div><button className="button button-primary" onClick={showContact}><FiPhone />{t(language, "contact")}</button></div>
       {contactOpen && <Modal onClose={() => setContactOpen(false)} title={t(language, "contact")}><h3>{language === "fa" ? product.store.name_fa : product.store.name_en}</h3><p>{product.title}</p><bdi className="contact-phone">{product.store.mobile_number}</bdi><a className="button button-primary block" href={`tel:${product.store.mobile_number}`} onClick={() => track("phone_call_clicked", language, { product_public_id: product.public_id })}><FiPhone />{t(language, "call")}</a><div className="contact-location"><FiMapPin /><div><strong>{language === "fa" ? product.store.city_fa : product.store.city_en}</strong>{(language === "fa" ? product.store.address_fa : product.store.address_en) && <p>{language === "fa" ? product.store.address_fa : product.store.address_en}</p>}</div></div></Modal>}
       {zoomOpen && <Modal wide onClose={() => setZoomOpen(false)} title={product.title}><div className="zoom-image">{image && <img src={image.url} alt={product.title} />}</div></Modal>}

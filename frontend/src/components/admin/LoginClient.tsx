@@ -46,10 +46,10 @@ export function LoginClient() {
 
   return (
     <div className="admin-login" dir="rtl">
-      <header><Link className="brand" href="/Market">بازار فرش ایران</Link><span>پنل فروشنده</span></header>
+      <header><Link className="brand admin-brand" href="/Market"><img src="/images/brand-mark.png" alt="" />فرش شبستری</Link><span>پنل مدیریت</span></header>
       <main>
-        <p className="eyebrow">مدیریت فروشگاه فرش ایران</p>
-        <h1>به پنل فروشنده وارد شوید</h1>
+        <p className="eyebrow">مدیریت فروشگاه فرش شبستری</p>
+        <h1>به پنل مدیریت وارد شوید</h1>
         <p>محصولات، تصاویر و موجودی فروشگاه را مدیریت کنید.</p>
         <form onSubmit={submit}>
           <label>شماره موبایل<input dir="rtl" inputMode="tel" autoComplete="username" placeholder="شماره موبایل خود را وارد کنید" required value={mobile} onChange={(e) => setMobile(e.target.value)} /></label>

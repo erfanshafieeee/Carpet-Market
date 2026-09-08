@@ -19,8 +19,25 @@ export interface Store {
   city_fa: string;
   city_en: string;
   mobile_number: string;
+  manager_mobile_number: string;
+  domain: string;
   address_fa: string;
   address_en: string;
+  branches: Array<{
+    id: number;
+    name_fa: string;
+    name_en: string;
+    address_fa: string;
+    address_en: string;
+    sort_order: number;
+  }>;
+}
+
+export interface SellRequestCreated {
+  public_id: string;
+  tracking_code: string;
+  status: "needs_review";
+  created_at: string;
 }
 
 export interface ProductImage {

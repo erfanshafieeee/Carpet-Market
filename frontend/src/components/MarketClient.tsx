@@ -5,11 +5,13 @@ import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "re
 import { useRouter, useSearchParams } from "next/navigation";
 import { FiChevronDown, FiFilter, FiSearch, FiX } from "react-icons/fi";
 import { PublicHeader } from "./PublicHeader";
+import { PublicFooter } from "./PublicFooter";
+import { MarketingBanner } from "./MarketingBanner";
 import { StatusBadge } from "./StatusBadge";
 import { apiFetch } from "@/lib/api";
 import { track } from "@/lib/analytics";
 import { number, t } from "@/lib/i18n";
-import type { Language, PaginatedProducts, Product, References } from "@/lib/types";
+import type { Language, PaginatedProducts, Product, References, Store } from "@/lib/types";
 
 const filterGroups = ["city", "weave", "material", "color", "pattern"] as const;
 
@@ -17,7 +19,7 @@ function cover(product: Product) {
   return product.images.find((item) => item.is_cover) ?? product.images[0];
 }
 
-export function MarketClient({ initialData = null, initialReferences = {} }: { initialData?: PaginatedProducts | null; initialReferences?: References }) {
+export function MarketClient({ initialData = null, initialReferences = {}, initialStore = null }: { initialData?: PaginatedProducts | null; initialReferences?: References; initialStore?: Store | null }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const language: Language = searchParams.get("lang") === "en" ? "en" : "fa";
@@ -143,6 +145,7 @@ export function MarketClient({ initialData = null, initialReferences = {} }: { i
     <div dir={language === "fa" ? "rtl" : "ltr"} lang={language}>
       <PublicHeader language={language} />
       <main className="market-page">
+        <MarketingBanner language={language} />
         <section className="market-intro">
           <h1>{t(language, "find")}</h1>
           <form className="search-box" onSubmit={submitSearch}>
@@ -182,7 +185,7 @@ export function MarketClient({ initialData = null, initialReferences = {} }: { i
         </div>
       </main>
       {mobileFilters && <button className="drawer-backdrop" aria-label="Close filters" onClick={() => setMobileFilters(false)} />}
-      <footer className="site-footer"><span>© {new Date().getFullYear()} {language === "fa" ? "فروشگاه فرش ایران" : "Iran Carpet Gallery"}</span><span>{language === "fa" ? "خرید و پرداخت به‌صورت حضوری انجام می‌شود." : "Viewing and purchase are arranged directly with the store."}</span></footer>
+      <PublicFooter language={language} store={initialStore} />
     </div>
   );
 }

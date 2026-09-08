@@ -40,6 +40,73 @@ export interface SellRequestCreated {
   created_at: string;
 }
 
+export type SellRequestStatus = "needs_review" | "in_progress" | "purchased" | "rejected";
+export type SellRequestRejectionReason = "condition_mismatch" | "outside_scope" | "duplicate" | "owner_withdrew" | "unable_to_contact" | "other";
+
+export interface AdminSellRequestListItem {
+  public_id: string;
+  tracking_code: string;
+  rug_type: RugType;
+  phone_number: string;
+  province: ReferenceItem;
+  status: SellRequestStatus;
+  thumbnail: string | null;
+  image_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PaginatedSellRequests {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: AdminSellRequestListItem[];
+}
+
+export interface SellRequestHistoryItem {
+  id: number;
+  from_status: SellRequestStatus | "";
+  to_status: SellRequestStatus;
+  rejection_reason: SellRequestRejectionReason | "";
+  changed_by: string | null;
+  created_at: string;
+}
+
+export interface SellRequestNote {
+  id: number;
+  body: string;
+  author: string | null;
+  created_at: string;
+}
+
+export interface AdminSellRequestDetail extends Omit<AdminSellRequestListItem, "thumbnail" | "image_count"> {
+  address: string;
+  city: ReferenceItem | null;
+  length_cm: number | null;
+  width_cm: number | null;
+  condition: "new" | "used" | "";
+  approximate_age_years: number | null;
+  pattern: ReferenceItem | null;
+  materials: ReferenceItem[];
+  colors: ReferenceItem[];
+  raj: number | null;
+  reeds: number | null;
+  density: number | null;
+  brand: ReferenceItem | null;
+  description: string;
+  rejection_reason: SellRequestRejectionReason | "";
+  rejection_note: string;
+  utm_source: string;
+  utm_medium: string;
+  utm_campaign: string;
+  utm_term: string;
+  utm_content: string;
+  first_admin_action_at: string | null;
+  images: Array<{ id: number; url: string; sort_order: number }>;
+  status_history: SellRequestHistoryItem[];
+  notes: SellRequestNote[];
+}
+
 export interface ProductImage {
   id: number;
   url: string;

@@ -1,6 +1,12 @@
 # نسخه‌بندی و بازیابی
 
-نسخه‌های پایدار پروژه با Semantic Versioning و Git tag امضاشده/annotated ثبت می‌شوند. شاخه `main` محل توسعه نسخه بعدی است و شاخه `release/v1` فقط برای اصلاحات ضروری خانواده V1 نگهداری می‌شود.
+نسخه‌های پایدار پروژه با Semantic Versioning و Git tag annotated ثبت می‌شوند. شاخه `main` محل نسخه پایدار جاری است و شاخه `release/v1` فقط برای اصلاحات ضروری خانواده V1 نگهداری می‌شود.
+
+## نسخه پایدار 2.0.0
+
+- Git tag ثابت: `v2.0.0`
+- نسخه ثبت‌شده در `VERSION`، `frontend/package.json` و `frontend/package-lock.json`
+- شامل فلو فروش عمومی، مدیریت درخواست‌های خرید، Analytics V2 و شواهد Visual QA
 
 ## اجزای Snapshot نسخه 1.0.0
 

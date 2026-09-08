@@ -1,14 +1,14 @@
 import { Suspense } from "react";
 import { MarketClient } from "@/components/MarketClient";
 import type { Metadata } from "next";
-import type { PaginatedProducts, References } from "@/lib/types";
+import type { PaginatedProducts, References, Store } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
 const API_URL = process.env.BACKEND_API_URL ?? "http://127.0.0.1:8000/api/v1";
 
 export const metadata: Metadata = {
-  title: "بازار فرش ایران | Iran Carpet Market",
+  title: "فرش شبستری | Shabestari Carpet",
   description: "ویترین فرش‌های دستباف و ماشینی ایران با مشخصات کامل و تماس مستقیم با فروشنده.",
 };
 
@@ -19,17 +19,20 @@ export default async function MarketPage({ searchParams }: { searchParams: Promi
   if (!params.has("lang")) params.set("lang", "fa");
   let products: PaginatedProducts | null = null;
   let references: References = {};
+  let store: Store | null = null;
   try {
-    const [productsResponse, referencesResponse] = await Promise.all([
+    const [productsResponse, referencesResponse, storeResponse] = await Promise.all([
       fetch(`${API_URL}/products/?${params}`, { cache: "no-store" }),
       fetch(`${API_URL}/references/`, { cache: "no-store" }),
+      fetch(`${API_URL}/store/`, { cache: "no-store" }),
     ]);
     if (productsResponse.ok) products = await productsResponse.json();
     if (referencesResponse.ok) references = await referencesResponse.json();
+    if (storeResponse.ok) store = await storeResponse.json();
   } catch { /* Client fallback handles a temporarily unavailable API. */ }
   return (
     <Suspense fallback={<main className="loading-state">در حال آماده‌سازی گالری…</main>}>
-      <MarketClient initialData={products} initialReferences={references} />
+      <MarketClient initialData={products} initialReferences={references} initialStore={store} />
     </Suspense>
   );
 }

@@ -16,9 +16,9 @@ export function PublicHeader({ language }: { language: Language }) {
     <header className="public-header">
       <div className="brand-cluster">
         <Link className={`brand ${language === "en" ? "brand-en" : ""}`} href={`/Market?lang=${language}`}>
-          {language === "fa" ? "بازار فرش ایران" : "Iran Carpet Market"}
+          <span className="brand-mark" aria-hidden="true"><img src="/images/brand-mark.png" alt="" /></span>
+          <span className="brand-copy"><strong>{language === "fa" ? "فرش شبستری" : "Shabestari Carpet"}</strong><small>{language === "fa" ? "سه شعبه در تهران" : "Three branches in Tehran"}</small></span>
         </Link>
-        <span className="store-meta">{language === "fa" ? "فروشگاه فرش ایران · تهران" : "Iran Carpet Gallery · Tehran"}</span>
       </div>
       <nav className="language-switch" aria-label="Language">
         <Link className={language === "fa" ? "active" : ""} href={languageUrl("fa")}>فارسی</Link>

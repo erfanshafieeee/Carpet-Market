@@ -28,6 +28,8 @@ class Store(models.Model):
     city_fa = models.CharField(max_length=120)
     city_en = models.CharField(max_length=120)
     mobile_number = models.CharField(max_length=16)
+    manager_mobile_number = models.CharField(max_length=16, blank=True)
+    domain = models.CharField(max_length=160, blank=True)
     address_fa = models.TextField(blank=True)
     address_en = models.TextField(blank=True)
     is_active = models.BooleanField(default=True)
@@ -42,6 +44,24 @@ class Store(models.Model):
 
     def __str__(self):
         return self.name_fa
+
+
+class StoreBranch(models.Model):
+    store = models.ForeignKey(Store, on_delete=models.CASCADE, related_name="branches")
+    name_fa = models.CharField(max_length=120)
+    name_en = models.CharField(max_length=120)
+    address_fa = models.TextField()
+    address_en = models.TextField()
+    sort_order = models.PositiveSmallIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ("sort_order", "id")
+        constraints = [models.UniqueConstraint(fields=("store", "sort_order"), name="unique_store_branch_order")]
+        indexes = [models.Index(fields=("store", "is_active", "sort_order"), name="store_branch_active_idx")]
+
+    def __str__(self):
+        return f"{self.store} / {self.name_fa}"
 
 
 class StoreMembership(models.Model):
@@ -73,6 +93,7 @@ class StoreMembership(models.Model):
 
 class ReferenceItem(models.Model):
     class Category(models.TextChoices):
+        PROVINCE = "province", "Province"
         CITY = "city", "City"
         WEAVE = "weave", "Weave"
         MATERIAL = "material", "Material"
@@ -92,7 +113,7 @@ class ReferenceItem(models.Model):
         constraints = [
             models.UniqueConstraint(fields=("category", "code"), name="unique_reference_code_per_category"),
             models.CheckConstraint(
-                condition=models.Q(category__in=("city", "weave", "material", "color", "pattern", "brand")),
+                condition=models.Q(category__in=("province", "city", "weave", "material", "color", "pattern", "brand")),
                 name="reference_valid_category",
             ),
         ]

@@ -14,6 +14,9 @@ class AnalyticsEvent(models.Model):
         CONTACT_CLICKED = "contact_clicked", "Contact clicked"
         PHONE_CALL_CLICKED = "phone_call_clicked", "Phone call clicked"
         GALLERY_INTERACTED = "gallery_interacted", "Gallery interacted"
+        SELL_FLOW_STARTED = "sell_flow_started", "Sell flow started"
+        SELL_STEP_COMPLETED = "sell_step_completed", "Sell step completed"
+        SELL_REQUEST_SUBMITTED = "sell_request_submitted", "Sell request submitted"
 
     event_type = models.CharField(max_length=32, choices=EventType.choices)
     session_id = models.UUIDField(db_index=True)
@@ -46,6 +49,9 @@ class AnalyticsEvent(models.Model):
                         "contact_clicked",
                         "phone_call_clicked",
                         "gallery_interacted",
+                        "sell_flow_started",
+                        "sell_step_completed",
+                        "sell_request_submitted",
                     )
                 ),
                 name="analytics_valid_event_type",

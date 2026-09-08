@@ -9,6 +9,7 @@ from rest_framework.views import APIView
 
 from catalog.models import Product, Store
 from catalog.permissions import IsStoreAdmin
+from sell_requests.models import SellRequest, SellRequestStatusHistory
 
 from .models import AnalyticsEvent
 from .serializers import EventSerializer
@@ -83,6 +84,58 @@ class DashboardView(APIView):
             .annotate(count=Count("id"))
             .order_by("-count", "query")[:5]
         )
+        sell_requests = SellRequest.objects.manageable_by(request.user).filter(created_at__range=(start, end))
+        sell_statuses = {
+            item["status"]: item["count"]
+            for item in sell_requests.values("status").annotate(count=Count("id")).order_by("status")
+        }
+        sell_types = {
+            item["rug_type"]: item["count"]
+            for item in sell_requests.values("rug_type").annotate(count=Count("id")).order_by("rug_type")
+        }
+        top_provinces = list(
+            sell_requests.values("province__code", "province__label_fa")
+            .annotate(count=Count("id"))
+            .order_by("-count", "province__label_fa")[:5]
+        )
+        rejection_reasons = list(
+            sell_requests.filter(status=SellRequest.Status.REJECTED)
+            .exclude(rejection_reason="")
+            .values("rejection_reason")
+            .annotate(count=Count("id"))
+            .order_by("-count", "rejection_reason")
+        )
+        attribution = list(
+            sell_requests.exclude(utm_campaign="", utm_source="", utm_medium="")
+            .values("utm_campaign", "utm_source", "utm_medium")
+            .annotate(count=Count("id"))
+            .order_by("-count", "utm_campaign")[:5]
+        )
+        actioned_request_ids = SellRequestStatusHistory.objects.filter(
+            sell_request__in=sell_requests,
+            from_status=SellRequest.Status.NEEDS_REVIEW,
+        ).exclude(to_status=SellRequest.Status.NEEDS_REVIEW).values_list("sell_request_id", flat=True).distinct()
+        actioned_count = len(set(actioned_request_ids))
+        purchased_count = sell_statuses.get(SellRequest.Status.PURCHASED, 0)
+        purchase_rate = round(purchased_count / actioned_count * 100, 1) if actioned_count else None
+        first_action_seconds = [
+            (first_action - created).total_seconds()
+            for created, first_action in sell_requests.exclude(first_admin_action_at=None).values_list("created_at", "first_admin_action_at")
+        ]
+        avg_first_action_hours = round(sum(first_action_seconds) / len(first_action_seconds) / 3600, 1) if first_action_seconds else None
+        sell_events = events.filter(event_type__in=(
+            AnalyticsEvent.EventType.SELL_FLOW_STARTED,
+            AnalyticsEvent.EventType.SELL_STEP_COMPLETED,
+            AnalyticsEvent.EventType.SELL_REQUEST_SUBMITTED,
+        ))
+        started_sessions = set(sell_events.filter(event_type=AnalyticsEvent.EventType.SELL_FLOW_STARTED).values_list("session_id", flat=True))
+        submitted_sessions = set(sell_events.filter(event_type=AnalyticsEvent.EventType.SELL_REQUEST_SUBMITTED).values_list("session_id", flat=True))
+        step_sessions = {
+            str(step): sell_events.filter(event_type=AnalyticsEvent.EventType.SELL_STEP_COMPLETED, properties__step_number=step)
+            .values("session_id").distinct().count()
+            for step in (1, 2)
+        }
+        sell_conversion = round(len(started_sessions & submitted_sessions) / len(started_sessions) * 100, 1) if started_sessions else None
         return Response(
             {
                 "range": {"from": start, "to": end},
@@ -103,5 +156,25 @@ class DashboardView(APIView):
                 "top_products_by_view": list(top_views),
                 "top_products_by_contact": list(top_contacts),
                 "top_search_queries": list(search_queries),
+                "sell": {
+                    "metrics": {
+                        "flow_started_sessions": len(started_sessions),
+                        "step_1_completed_sessions": step_sessions["1"],
+                        "step_2_completed_sessions": step_sessions["2"],
+                        "submitted_sessions": len(submitted_sessions),
+                        "conversion_rate": sell_conversion,
+                        "requests_submitted": sell_requests.count(),
+                        "open_requests": sell_statuses.get(SellRequest.Status.NEEDS_REVIEW, 0) + sell_statuses.get(SellRequest.Status.IN_PROGRESS, 0),
+                        "purchased_requests": purchased_count,
+                        "actioned_requests": actioned_count,
+                        "purchase_rate": purchase_rate,
+                        "avg_first_admin_action_hours": avg_first_action_hours,
+                    },
+                    "by_status": sell_statuses,
+                    "by_type": sell_types,
+                    "top_provinces": top_provinces,
+                    "rejection_reasons": rejection_reasons,
+                    "attribution": attribution,
+                },
             }
         )

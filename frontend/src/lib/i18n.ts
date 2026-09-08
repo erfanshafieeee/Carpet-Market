@@ -2,7 +2,7 @@ import type { InventoryStatus, Language, RugType } from "./types";
 
 const dictionary = {
   fa: {
-    brand: "بازار فرش ایران",
+    brand: "فرش شبستری",
     find: "فرش مناسب خود را پیدا کنید",
     search: "جستجو بر اساس طرح، رنگ، شهر بافت، اندازه و...",
     filters: "فیلترها",
@@ -41,7 +41,7 @@ const dictionary = {
     used: "دست‌دوم"
   },
   en: {
-    brand: "Iran Carpet Market",
+    brand: "Shabestari Carpet",
     find: "Find a carpet worth seeing in person",
     search: "Search by design, colour, origin, dimensions…",
     filters: "Filters",

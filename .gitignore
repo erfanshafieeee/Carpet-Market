@@ -10,6 +10,9 @@ frontend/.next/
 frontend/node_modules/
 frontend/out/
 frontend/qa/chrome-*/
+frontend/qa/v2-design-parity/source/
+frontend/qa/v2-design-parity/implementation/
+frontend/qa/v2-design-parity/compare.html
 *.tsbuildinfo
 coverage/
 .pytest_cache/

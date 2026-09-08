@@ -1,5 +1,6 @@
 import shutil
 import tempfile
+import uuid
 
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -8,6 +9,7 @@ from PIL import Image
 from rest_framework.test import APIClient
 
 from catalog.models import ReferenceItem, Store, StoreMembership
+from analytics.models import AnalyticsEvent
 
 from .models import SellRequest, SellRequestAdminAction
 
@@ -140,3 +142,52 @@ class SellRequestApiTests(TestCase):
         self.create_request()
         response = self.client.get("/api/v1/admin/sell-requests/")
         self.assertIn(response.status_code, (401, 403))
+
+    def test_sell_funnel_events_are_private_and_dashboard_reports_operations(self):
+        first = self.create_request().data["public_id"]
+        self.create_request(phone_number="09123334444")
+        session_id = uuid.uuid4()
+        for event_type, properties in (
+            ("sell_flow_started", {"utm_source": "instagram"}),
+            ("sell_flow_started", {}),
+            ("sell_step_completed", {"step_number": 1, "carpet_type": "handmade"}),
+            ("sell_step_completed", {"step_number": 2, "province_id": self.province.id}),
+            ("sell_request_submitted", {"request_public_id": first, "carpet_type": "handmade"}),
+        ):
+            response = self.client.post(
+                "/api/v1/analytics/events/",
+                {"event_type": event_type, "session_id": session_id, "language": "fa", "properties": properties},
+                format="json",
+            )
+            self.assertEqual(response.status_code, 201, response.data)
+        rejected_pii = self.client.post(
+            "/api/v1/analytics/events/",
+            {"event_type": "sell_flow_started", "session_id": uuid.uuid4(), "language": "fa", "properties": {"phone_number": "09120000000"}},
+            format="json",
+        )
+        self.assertEqual(rejected_pii.status_code, 400)
+        self.assertFalse(AnalyticsEvent.objects.filter(properties__has_key="phone_number").exists())
+
+        self.client.force_authenticate(self.user)
+        in_progress = self.client.patch(
+            f"/api/v1/admin/sell-requests/{first}/status/",
+            {"status": "in_progress"},
+            format="json",
+        )
+        self.assertEqual(in_progress.status_code, 200)
+        purchased = self.client.patch(
+            f"/api/v1/admin/sell-requests/{first}/status/",
+            {"status": "purchased"},
+            format="json",
+        )
+        self.assertEqual(purchased.status_code, 200)
+        dashboard = self.client.get("/api/v1/analytics/dashboard/?range=7")
+        self.assertEqual(dashboard.status_code, 200, dashboard.data)
+        sell = dashboard.data["sell"]
+        self.assertEqual(sell["metrics"]["flow_started_sessions"], 1)
+        self.assertEqual(sell["metrics"]["submitted_sessions"], 1)
+        self.assertEqual(sell["metrics"]["conversion_rate"], 100.0)
+        self.assertEqual(sell["metrics"]["requests_submitted"], 2)
+        self.assertEqual(sell["metrics"]["purchase_rate"], 100.0)
+        self.assertEqual(sell["by_type"]["handmade"], 2)
+        self.assertEqual(sell["top_provinces"][0]["count"], 2)

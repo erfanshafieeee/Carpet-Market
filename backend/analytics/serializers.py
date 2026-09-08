@@ -12,6 +12,23 @@ PRODUCT_EVENTS = {
     AnalyticsEvent.EventType.PHONE_CALL_CLICKED,
     AnalyticsEvent.EventType.GALLERY_INTERACTED,
 }
+SENSITIVE_PROPERTY_KEYS = {"phone", "phone_number", "mobile", "mobile_number", "address", "description", "image", "images"}
+SELL_PROPERTY_KEYS = {
+    AnalyticsEvent.EventType.SELL_FLOW_STARTED: {"utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content"},
+    AnalyticsEvent.EventType.SELL_STEP_COMPLETED: {"step_number", "carpet_type", "province_id"},
+    AnalyticsEvent.EventType.SELL_REQUEST_SUBMITTED: {
+        "request_public_id", "carpet_type", "province_id", "photo_count",
+        "utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content",
+    },
+}
+
+
+def contains_sensitive_key(value):
+    if isinstance(value, dict):
+        return any(str(key).lower() in SENSITIVE_PROPERTY_KEYS or contains_sensitive_key(item) for key, item in value.items())
+    if isinstance(value, list):
+        return any(contains_sensitive_key(item) for item in value)
+    return False
 
 
 class EventSerializer(serializers.ModelSerializer):
@@ -47,4 +64,9 @@ class EventSerializer(serializers.ModelSerializer):
             attrs["store"] = stores[0]
         if attrs["event_type"] == AnalyticsEvent.EventType.SEARCH_PERFORMED and not attrs.get("query", "").strip():
             raise serializers.ValidationError({"query": "عبارت جستجو اجباری است."})
+        if contains_sensitive_key(attrs.get("properties", {})):
+            raise serializers.ValidationError({"properties": "ارسال اطلاعات هویتی یا تصویر در Analytics مجاز نیست."})
+        allowed_sell_keys = SELL_PROPERTY_KEYS.get(attrs["event_type"])
+        if allowed_sell_keys is not None and set(attrs.get("properties", {})) - allowed_sell_keys:
+            raise serializers.ValidationError({"properties": "Property ارسال‌شده برای این رویداد مجاز نیست."})
         return attrs

@@ -169,6 +169,26 @@ export interface DashboardData {
   top_products_by_view: Array<{ public_id: string; title_fa: string; metric: number }>;
   top_products_by_contact: Array<{ public_id: string; title_fa: string; metric: number }>;
   top_search_queries: Array<{ query: string; count: number }>;
+  sell: {
+    metrics: {
+      flow_started_sessions: number;
+      step_1_completed_sessions: number;
+      step_2_completed_sessions: number;
+      submitted_sessions: number;
+      conversion_rate: number | null;
+      requests_submitted: number;
+      open_requests: number;
+      purchased_requests: number;
+      actioned_requests: number;
+      purchase_rate: number | null;
+      avg_first_admin_action_hours: number | null;
+    };
+    by_status: Partial<Record<SellRequestStatus, number>>;
+    by_type: Partial<Record<RugType, number>>;
+    top_provinces: Array<{ province__code: string; province__label_fa: string; count: number }>;
+    rejection_reasons: Array<{ rejection_reason: SellRequestRejectionReason; count: number }>;
+    attribution: Array<{ utm_campaign: string; utm_source: string; utm_medium: string; count: number }>;
+  };
 }
 
 export interface AdminProduct {

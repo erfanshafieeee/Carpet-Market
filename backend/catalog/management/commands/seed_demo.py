@@ -253,6 +253,40 @@ class Command(BaseCommand):
                     event_rows.append(AnalyticsEvent(event_type="search_performed", session_id=session_id, store=store, language="fa", query=query))
             AnalyticsEvent.objects.bulk_create(event_rows)
 
+        for index in range(12):
+            session_id = uuid.uuid5(uuid.NAMESPACE_URL, f"shabestari-v2-sell-session:{index}")
+            AnalyticsEvent.objects.get_or_create(
+                event_type=AnalyticsEvent.EventType.SELL_FLOW_STARTED,
+                session_id=session_id,
+                store=store,
+                properties={"utm_source": "instagram" if index % 3 == 0 else "direct"},
+                defaults={"language": "fa"},
+            )
+            if index < 10:
+                AnalyticsEvent.objects.get_or_create(
+                    event_type=AnalyticsEvent.EventType.SELL_STEP_COMPLETED,
+                    session_id=session_id,
+                    store=store,
+                    properties={"step_number": 1, "carpet_type": "handmade" if index % 2 else "machine"},
+                    defaults={"language": "fa"},
+                )
+            if index < 8:
+                AnalyticsEvent.objects.get_or_create(
+                    event_type=AnalyticsEvent.EventType.SELL_STEP_COMPLETED,
+                    session_id=session_id,
+                    store=store,
+                    properties={"step_number": 2, "province_id": refs[("province", "tehran")].id},
+                    defaults={"language": "fa"},
+                )
+            if index < 6:
+                AnalyticsEvent.objects.get_or_create(
+                    event_type=AnalyticsEvent.EventType.SELL_REQUEST_SUBMITTED,
+                    session_id=session_id,
+                    store=store,
+                    properties={"carpet_type": "handmade" if index % 2 else "machine"},
+                    defaults={"language": "fa"},
+                )
+
         self.stdout.write(self.style.SUCCESS("Demo database seeded."))
         self.stdout.write(f"Demo admin mobile: {mobile}")
         self.stdout.write("Demo password comes from DEMO_ADMIN_PASSWORD (default is documented for local demo only).")

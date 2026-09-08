@@ -21,7 +21,7 @@ const errors = [];
 let id = 0;
 socket.addEventListener("message", (event) => {
   const message = JSON.parse(event.data);
-  if (message.id && pending.has(message.id)) { const promise = pending.get(message.id); pending.delete(message.id); message.error ? promise.reject(new Error(message.error.message)) : promise.resolve(message.result); }
+  if (message.id && pending.has(message.id)) { const promise = pending.get(message.id); pending.delete(message.id); if (message.error) promise.reject(new Error(message.error.message)); else promise.resolve(message.result); }
   if (message.method === "Runtime.exceptionThrown") errors.push(message.params.exceptionDetails.text);
   if (message.method === "Log.entryAdded" && message.params.entry.level === "error" && !message.params.entry.url?.includes("favicon") && !message.params.entry.text.includes("/_next/hmr")) errors.push(`${message.params.entry.text} ${message.params.entry.url || ""}`.trim());
 });
@@ -50,7 +50,19 @@ checks.galleryImages = await evaluate("document.querySelectorAll('.request-thumb
 checks.statusOptions = await evaluate("document.querySelectorAll('.request-status-action option').length");
 checks.historyItems = await evaluate("document.querySelectorAll('.request-history li').length");
 await screenshot("implementation-v2-admin-request-detail");
+await navigate(`${origin}/Admin/dashboard`);
+checks.dashboardTabs = await evaluate("document.querySelectorAll('[role=tab]').length");
+checks.overviewMetrics = await evaluate("document.querySelectorAll('#dashboard-overview .metric-card').length");
+await screenshot("implementation-v2-dashboard-overview");
+await evaluate("document.querySelectorAll('[role=tab]')[1]?.click()");
+await delay(1200);
+checks.sellAnalytics = await evaluate("Boolean(document.querySelector('.sell-dashboard-section'))");
+checks.sellAnalyticsPanels = await evaluate("document.querySelectorAll('.sell-insights-grid .admin-panel').length");
+checks.analyticsContainsPii = await evaluate("/09\\d{9}/.test(document.querySelector('#dashboard-insights')?.innerText || '')");
+await evaluate("document.querySelector('.sell-dashboard-section')?.scrollIntoView({block:'start'})");
+await delay(500);
+await screenshot("implementation-v2-dashboard-insights");
 checks.errors = [...new Set(errors)];
-checks.passed = checks.listRows > 0 && checks.stats === 3 && checks.filters === 3 && checks.detailLoaded && checks.galleryImages > 0 && checks.statusOptions === 4 && checks.historyItems > 0 && checks.errors.length === 0;
+checks.passed = checks.listRows > 0 && checks.stats === 3 && checks.filters === 3 && checks.detailLoaded && checks.galleryImages > 0 && checks.statusOptions === 4 && checks.historyItems > 0 && checks.dashboardTabs === 2 && checks.overviewMetrics === 4 && checks.sellAnalytics && checks.sellAnalyticsPanels === 6 && !checks.analyticsContainsPii && checks.errors.length === 0;
 console.log(JSON.stringify(checks, null, 2));
 socket.close();

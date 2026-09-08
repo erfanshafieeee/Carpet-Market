@@ -89,7 +89,7 @@ export function SellFlowClient({ references, store }: { references: References; 
     Object.entries(attribution(params)).forEach(([key, value]) => value && body.append(key, String(value)));
     try {
       const created = await apiFetch<SellRequestCreated>("/sell-requests/", { method: "POST", body });
-      track("sell_request_submitted", language, { carpet_type: draft.rug_type, province_id: draft.province, photo_count: images.length });
+      track("sell_request_submitted", language, { request_public_id: created.public_id, carpet_type: draft.rug_type, province_id: draft.province, photo_count: images.length, ...attribution(params) });
       router.push(`/Market/sell/success?lang=${language}&code=${encodeURIComponent(created.tracking_code)}`);
     } catch (error) {
       setSubmitError(apiError(error) || (fa ? "ثبت درخواست انجام نشد؛ دوباره تلاش کنید." : "We could not submit your request. Please try again."));

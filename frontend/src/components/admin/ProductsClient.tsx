@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useState } from "react";
 import {
   FiEdit2,
   FiExternalLink,
   FiPlus,
   FiSearch,
   FiTrash2,
+  FiX,
 } from "react-icons/fi";
 import { AdminShell } from "./AdminShell";
 import { apiFetch } from "@/lib/api";
@@ -26,6 +27,9 @@ export function ProductsClient() {
   const [status, setStatus] = useState("");
   const [type, setType] = useState("");
   const [error, setError] = useState(false);
+  const [priceEdit, setPriceEdit] = useState<{ id: string; title: string; value: string } | null>(null);
+  const [priceError, setPriceError] = useState("");
+  const [savingPrice, setSavingPrice] = useState(false);
   const load = useCallback(() => {
     const params = new URLSearchParams({ page_size: "48" });
     if (query) params.set("search", query);
@@ -60,6 +64,19 @@ export function ProductsClient() {
       return;
     await apiFetch(`/admin/products/${publicId}/`, { method: "DELETE" });
     load();
+  };
+  const savePrice = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!priceEdit) return;
+    const value = Number(priceEdit.value.replace(/[^\d]/g, ""));
+    if (!Number.isFinite(value) || value <= 0) { setPriceError("یک قیمت معتبر بزرگ‌تر از صفر وارد کنید."); return; }
+    setSavingPrice(true);
+    try {
+      await apiFetch(`/admin/products/${priceEdit.id}/`, { method: "PATCH", body: JSON.stringify({ price_toman: value }) });
+      setPriceEdit(null);
+      load();
+    } catch { setPriceError("ثبت قیمت انجام نشد."); }
+    finally { setSavingPrice(false); }
   };
 
   return (
@@ -140,14 +157,15 @@ export function ProductsClient() {
                       </Link>
                     </td>
                     <td>
-                      <Link
+                      <button
+                        type="button"
                         className="table-price"
-                        href={`/Admin/products/${product.public_id}`}
+                        onClick={() => { setPriceError(""); setPriceEdit({ id: product.public_id, title: product.title_fa, value: String(product.price_toman) }); }}
                         aria-label={`ویرایش قیمت ${product.title_fa}`}
                       >
                         {fa(product.price_toman)}
                         <FiEdit2 />
-                      </Link>
+                      </button>
                     </td>
                     <td>
                       <select
@@ -205,6 +223,28 @@ export function ProductsClient() {
             «فروخته شده» از ویترین پیش‌فرض خارج می‌شود، اما صفحه محصول و تماس
             باقی می‌ماند. حذف محصول، صفحه عمومی را هم از دسترس خارج می‌کند.
           </div>
+        </div>
+      )}
+      {priceEdit && (
+        <div className="modal-backdrop" role="presentation">
+          <section className="modal" role="dialog" aria-modal="true" aria-labelledby="quick-price-title">
+            <header>
+              <h2 id="quick-price-title">ویرایش قیمت</h2>
+              <button className="icon-button" onClick={() => setPriceEdit(null)} aria-label="بستن"><FiX /></button>
+            </header>
+            <form className="modal-content" onSubmit={savePrice} noValidate>
+              <p>{priceEdit.title}</p>
+              <label className="sell-field">
+                <span>قیمت هر تخته (تومان)</span>
+                <input inputMode="numeric" value={priceEdit.value} onChange={(e) => setPriceEdit({ ...priceEdit, value: e.target.value })} />
+              </label>
+              {priceError && <p className="field-error" role="alert">{priceError}</p>}
+              <div className="modal-actions">
+                <button className="button button-primary" disabled={savingPrice}>ذخیره قیمت</button>
+                <button className="button" type="button" onClick={() => setPriceEdit(null)}>انصراف</button>
+              </div>
+            </form>
+          </section>
         </div>
       )}
     </AdminShell>

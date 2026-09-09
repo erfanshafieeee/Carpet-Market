@@ -1,10 +1,12 @@
 import shutil
 import tempfile
 import uuid
+from datetime import timedelta
 
 from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
+from django.utils import timezone
 from PIL import Image
 from rest_framework.test import APIClient
 
@@ -137,6 +139,18 @@ class SellRequestApiTests(TestCase):
         result = self.client.get("/api/v1/admin/sell-requests/?q=09121234567&range=all")
         self.assertEqual(result.status_code, 200)
         self.assertEqual(result.data["count"], 1)
+
+    def test_admin_request_list_defaults_to_all_time(self):
+        public_id = self.create_request().data["public_id"]
+        SellRequest.objects.filter(public_id=public_id).update(created_at=timezone.now() - timedelta(days=120))
+        self.client.force_authenticate(self.user)
+
+        all_time = self.client.get("/api/v1/admin/sell-requests/")
+        recent = self.client.get("/api/v1/admin/sell-requests/?range=90")
+
+        self.assertEqual(all_time.status_code, 200)
+        self.assertEqual(all_time.data["count"], 1)
+        self.assertEqual(recent.data["count"], 0)
 
     def test_anonymous_user_cannot_read_requests(self):
         self.create_request()

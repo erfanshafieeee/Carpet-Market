@@ -52,7 +52,7 @@ class AdminSellRequestViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, 
             queryset = queryset.filter(status=value)
         if value := self.request.query_params.get("type"):
             queryset = queryset.filter(rug_type=value)
-        range_value = self.request.query_params.get("range", "30")
+        range_value = self.request.query_params.get("range", "all")
         now = timezone.now()
         if range_value in {"7", "30", "90"}:
             queryset = queryset.filter(created_at__gte=now - timedelta(days=int(range_value)))

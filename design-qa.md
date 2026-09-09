@@ -19,6 +19,17 @@
 - `[P2]` Product detail did not include the V2 public footer. Added the store-aware bilingual footer.
 - Final re-capture found no remaining actionable `P0`, `P1`, or `P2` issue. Mobile diagnostics report no overflowing element, and browser errors are empty.
 
+## V2 request-filter follow-up — 2026-09-09
+
+- Source visual truth: `PRD&DESIGN/V2/Design-v2.html`, admin requests state with the request-time card.
+- Rendered implementation: `frontend/qa/implementation-v2-admin-requests.png` at `1440 × 1000` CSS/image pixels, DPR `1`.
+- Full-view comparison: `frontend/qa/v2-design-parity/comparison/10-admin-requests.png` at `2880 × 1000`; source is left and implementation is right.
+- Focused-region comparison was unnecessary because the filter controls, labels, spacing, borders, and table header remain legible at the original comparison resolution.
+- `[P1]` The implementation kept the time range inside the main toolbar and defaulted to 30 days. Fixed by matching the design's independent date-filter card and making `همه زمان‌ها` the first/default option in the frontend, backend API, reset action, and design prototype.
+- Fonts/typography, spacing/layout rhythm, color tokens, icon fidelity, and Persian copy match the reference. Existing product imagery is unchanged and outside this filter-only scope.
+- Interaction QA passed: default is `all`, option order is `all/7/30/90/custom`, custom reveals the Jalali picker, results load, and browser console errors are empty.
+- Post-fix comparison has no remaining actionable `P0`, `P1`, or `P2` finding.
+
 ## Archived V1 comparison
 
 ## Comparison setup

@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { ChangeEvent, FormEvent, KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
+import { ChangeEvent, FormEvent, KeyboardEvent, useEffect, useRef, useState } from "react";
 import type { Dispatch, ReactNode, RefObject, SetStateAction } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { FiArrowLeft, FiArrowRight, FiAward, FiCamera, FiCheck, FiCheckCircle, FiClock, FiCopy, FiInfo, FiLayers, FiMap, FiPlus, FiShield, FiX } from "react-icons/fi";
+import { FiArrowLeft, FiArrowRight, FiAward, FiCamera, FiCheck, FiCheckCircle, FiClock, FiCopy, FiInfo, FiLayers, FiMap, FiPhone, FiPlus, FiShield, FiX } from "react-icons/fi";
 import { apiFetch } from "@/lib/api";
 import { track } from "@/lib/analytics";
 import type { Language, ReferenceItem, References, SellRequestCreated, Store } from "@/lib/types";
@@ -18,6 +18,7 @@ type Draft = {
 };
 type DraftSetter = (key: keyof Draft, value: string | string[]) => void;
 type StepProps = { fa: boolean; draft: Draft; set: DraftSetter; errors: Record<string, string>; heading: RefObject<HTMLHeadingElement | null> };
+type PendingImage = { file: File; previewUrl: string };
 
 const emptyDraft: Draft = { rug_type: "", phone_number: "", province: "", address: "", city: "", length_cm: "", width_cm: "", condition: "", approximate_age_years: "", pattern: "", materials: [], colors: [], raj: "", reeds: "", density: "", brand: "", description: "" };
 const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
@@ -31,7 +32,7 @@ export function SellFlowClient({ references, store }: { references: References; 
   const requestedStep = Math.min(3, Math.max(1, Number(params.get("step") || 1)));
   const step = requestedStep;
   const [draft, setDraft] = useState<Draft>(emptyDraft);
-  const [images, setImages] = useState<File[]>([]);
+  const [images, setImages] = useState<PendingImage[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
@@ -39,8 +40,13 @@ export function SellFlowClient({ references, store }: { references: References; 
   const heading = useRef<HTMLHeadingElement>(null);
   const started = useRef(false);
   const previousStep = useRef(step);
+  const previewUrls = useRef(new Set<string>());
 
   useEffect(() => { if (!started.current) { started.current = true; track("sell_flow_started", language, attribution(params)); } }, [language, params]);
+  useEffect(() => () => {
+    previewUrls.current.forEach((url) => URL.revokeObjectURL(url));
+    previewUrls.current.clear();
+  }, []);
   useEffect(() => {
     if (previousStep.current === step) return;
     previousStep.current = step;
@@ -88,11 +94,12 @@ export function SellFlowClient({ references, store }: { references: References; 
     setSubmitting(true); setSubmitError("");
     const body = new FormData();
     Object.entries(draft).forEach(([key, value]) => Array.isArray(value) ? value.forEach((item) => body.append(key === "materials" ? "material_ids" : "color_ids", item)) : value && body.append(key, key === "phone_number" ? normalizePhone(value) : toEnglishDigits(value)));
-    images.forEach((image) => body.append("images", image));
+    images.forEach(({ file }) => body.append("images", file));
     Object.entries(attribution(params)).forEach(([key, value]) => value && body.append(key, String(value)));
     try {
       const created = await apiFetch<SellRequestCreated>("/sell-requests/", { method: "POST", body });
       track("sell_request_submitted", language, { request_public_id: created.public_id, carpet_type: draft.rug_type, province_id: draft.province, photo_count: images.length, ...attribution(params) });
+      images.forEach(({ previewUrl }) => URL.revokeObjectURL(previewUrl));
       router.push(`/Market/sell/success?lang=${language}&code=${encodeURIComponent(created.tracking_code)}`);
     } catch (error) {
       setSubmitError(apiError(error) || (fa ? "ثبت درخواست انجام نشد؛ دوباره تلاش کنید." : "We could not submit your request. Please try again."));
@@ -103,7 +110,14 @@ export function SellFlowClient({ references, store }: { references: References; 
     const selected = Array.from(event.target.files || []);
     let message = "";
     const valid = selected.filter((file) => { const okay = allowedTypes.includes(file.type) && file.size <= maxSize; if (!okay) message = fa ? "فقط JPG، PNG یا WebP تا ۱۵ مگابایت پذیرفته می‌شود." : "Use JPG, PNG or WebP files up to 15 MB."; return okay; });
-    setImages((current) => { const result = [...current, ...valid].slice(0, 4); if (current.length + valid.length > 4) message = fa ? "حداکثر چهار تصویر مجاز است." : "Up to four photos are allowed."; return result; });
+    const available = Math.max(0, 4 - images.length);
+    const accepted = valid.slice(0, available).map((file) => {
+      const previewUrl = URL.createObjectURL(file);
+      previewUrls.current.add(previewUrl);
+      return { file, previewUrl };
+    });
+    if (valid.length > available) message = fa ? "حداکثر چهار تصویر مجاز است." : "Up to four photos are allowed.";
+    setImages((current) => [...current, ...accepted]);
     setErrors((current) => ({ ...current, images: message })); event.target.value = "";
   }
 
@@ -117,13 +131,16 @@ function StepHeader({ heading, fa, step, title, text }: { heading: RefObject<HTM
 function ErrorText({ value }: { value?: string }) { return <span className="field-error" role="alert">{value}</span>; }
 function Mark({ required, fa }: { required?: boolean; fa: boolean }) { return <small className={required ? "required-mark" : "optional-mark"}>{required ? (fa ? "اجباری" : "Required") : (fa ? "اختیاری" : "Optional")}</small>; }
 
-function StepOne({ fa, draft, set, images, setImages, addImages, errors, heading, label }: StepProps & { images: File[]; setImages: Dispatch<SetStateAction<File[]>>; addImages: (event: ChangeEvent<HTMLInputElement>) => void; label: (key: string) => string }) {
-  return <section className="sell-step"><StepHeader heading={heading} fa={fa} step={1} title={fa ? "نوع فرش و تصاویر" : "Rug type & photos"} text={fa ? "از کل فرش و جزئیات بافت عکس واضح بگیرید." : "Add clear photos of the whole rug and its weave."} /><fieldset><legend>{fa ? "نوع فرش" : "Rug type"}<Mark required fa={fa} /></legend><div className="sell-type-grid">{["handmade", "machine"].map((type) => <label key={type} className={draft.rug_type === type ? "selected" : ""}><input type="radio" name="rug_type" checked={draft.rug_type === type} onChange={() => set("rug_type", type)} />{type === "handmade" ? <FiAward /> : <FiLayers />}<strong>{label(type)}</strong><small>{type === "handmade" ? (fa ? "بافت سنتی و هنری" : "Traditional, artisan weave") : (fa ? "بافت کارخانه‌ای" : "Factory woven")}</small></label>)}</div><ErrorText value={errors.rug_type} /></fieldset><div className="sell-upload-head"><span>{fa ? "تصاویر فرش" : "Rug photos"}<Mark required fa={fa} /></span><label className="sell-upload"><FiCamera /><strong>{fa ? "افزودن تصاویر" : "Add photos"}</strong><small>{fa ? "حداقل ۱ و حداکثر ۴ تصویر · هر فایل حداکثر ۱۵ مگابایت" : "1–4 images · up to 15 MB each"}</small><input type="file" multiple accept="image/jpeg,image/png,image/webp" onChange={addImages} /></label><ErrorText value={errors.images} /><div className="sell-photo-list">{images.map((file: File, index: number) => <Photo key={`${file.name}-${file.lastModified}`} file={file} index={index} remove={() => setImages((current: File[]) => current.filter((_, i) => i !== index))} fa={fa} />)}</div></div><aside className="photo-guide"><FiCamera /><strong>{fa ? "برای بررسی بهتر این عکس‌ها را پیشنهاد می‌کنیم" : "Helpful photos for a faster review"}</strong><ol>{(fa ? ["نمای کامل فرش", "پشت فرش و نوع بافت", "نمای نزدیک طرح و الیاف", "آسیب، لکه یا پارگی احتمالی"] : ["Full view of the rug", "Back and weave", "Close-up of pattern and fibres", "Any damage, stain or tear"]).map((item, i) => <li key={item}><span>{i + 1}</span>{item}</li>)}</ol></aside></section>;
+function StepOne({ fa, draft, set, images, setImages, addImages, errors, heading, label }: StepProps & { images: PendingImage[]; setImages: Dispatch<SetStateAction<PendingImage[]>>; addImages: (event: ChangeEvent<HTMLInputElement>) => void; label: (key: string) => string }) {
+  const removeImage = (index: number) => setImages((current) => {
+    const removed = current[index];
+    if (removed) URL.revokeObjectURL(removed.previewUrl);
+    return current.filter((_, itemIndex) => itemIndex !== index);
+  });
+  return <section className="sell-step"><StepHeader heading={heading} fa={fa} step={1} title={fa ? "نوع فرش و تصاویر" : "Rug type & photos"} text={fa ? "از کل فرش و جزئیات بافت عکس واضح بگیرید." : "Add clear photos of the whole rug and its weave."} /><fieldset><legend>{fa ? "نوع فرش" : "Rug type"}<Mark required fa={fa} /></legend><div className="sell-type-grid">{["handmade", "machine"].map((type) => <label key={type} className={draft.rug_type === type ? "selected" : ""}><input type="radio" name="rug_type" checked={draft.rug_type === type} onChange={() => set("rug_type", type)} />{type === "handmade" ? <FiAward /> : <FiLayers />}<strong>{label(type)}</strong><small>{type === "handmade" ? (fa ? "بافت سنتی و هنری" : "Traditional, artisan weave") : (fa ? "بافت کارخانه‌ای" : "Factory woven")}</small></label>)}</div><ErrorText value={errors.rug_type} /></fieldset><div className="sell-upload-head"><span>{fa ? "تصاویر فرش" : "Rug photos"}<Mark required fa={fa} /></span><label className="sell-upload"><FiCamera /><strong>{fa ? "افزودن تصاویر" : "Add photos"}</strong><small>{fa ? "حداقل ۱ و حداکثر ۴ تصویر · هر فایل حداکثر ۱۵ مگابایت" : "1–4 images · up to 15 MB each"}</small><input type="file" multiple accept="image/jpeg,image/png,image/webp" onChange={addImages} /></label><ErrorText value={errors.images} /><div className="sell-photo-list">{images.map((image, index) => <Photo key={`${image.file.name}-${image.file.lastModified}`} image={image} index={index} remove={() => removeImage(index)} fa={fa} />)}</div></div><aside className="photo-guide"><FiCamera /><strong>{fa ? "برای بررسی بهتر این عکس‌ها را پیشنهاد می‌کنیم" : "Helpful photos for a faster review"}</strong><ol>{(fa ? ["نمای کامل فرش", "پشت فرش و نوع بافت", "نمای نزدیک طرح و الیاف", "آسیب، لکه یا پارگی احتمالی"] : ["Full view of the rug", "Back and weave", "Close-up of pattern and fibres", "Any damage, stain or tear"]).map((item, i) => <li key={item}><span>{i + 1}</span>{item}</li>)}</ol></aside></section>;
 }
-function Photo({ file, index, remove, fa }: { file: File; index: number; remove: () => void; fa: boolean }) {
-  const url = useMemo(() => URL.createObjectURL(file), [file]);
-  useEffect(() => () => URL.revokeObjectURL(url), [url]);
-  return <figure><img src={url} alt={`${fa ? "تصویر فرش" : "Rug photo"} ${index + 1}`} /><button type="button" onClick={remove} aria-label={fa ? "حذف تصویر" : "Remove photo"}><FiX /></button></figure>;
+function Photo({ image, index, remove, fa }: { image: PendingImage; index: number; remove: () => void; fa: boolean }) {
+  return <figure><img src={image.previewUrl} alt={`${fa ? "تصویر فرش" : "Rug photo"} ${index + 1}`} /><button type="button" onClick={remove} aria-label={fa ? "حذف تصویر" : "Remove photo"}><FiX /></button></figure>;
 }
 
 function StepTwo({ fa, draft, set, provinces, errors, heading }: StepProps & { provinces: ReferenceItem[] }) { return <section className="sell-step"><StepHeader heading={heading} fa={fa} step={2} title={fa ? "راه ارتباطی" : "Contact details"} text={fa ? "فقط برای بررسی درخواست و هماهنگی بازدید با شما تماس می‌گیریم." : "We will only use this to review the request and arrange an inspection."} /><div className="sell-fields"><Field label={fa ? "شماره موبایل مالک" : "Owner mobile number"} required fa={fa} error={errors.phone_number}><input dir="ltr" inputMode="tel" maxLength={13} placeholder="09xxxxxxxxx / +989xxxxxxxxx" value={draft.phone_number} onChange={(e) => set("phone_number", e.target.value)} /></Field><Field label={fa ? "استان محل فرش" : "Rug location province"} required fa={fa} error={errors.province}><SearchableSelect options={provinces} value={draft.province} onChange={(value) => set("province", value)} fa={fa} /></Field><Field label={fa ? "آدرس محل بازدید" : "Inspection address"} fa={fa}><input maxLength={250} value={draft.address} onChange={(e) => set("address", e.target.value)} /></Field></div><div className="privacy-note"><FiShield /><div><strong>{fa ? "اطلاعات شما عمومی نمی‌شود" : "Your details stay private"}</strong><p>{fa ? "شماره تماس و نشانی فقط در اختیار تیم بررسی فرش شبستری قرار می‌گیرد و در آمار عمومی ثبت نمی‌شود." : "Your phone and address are only available to the Shabestari review team and excluded from public analytics."}</p></div></div></section>; }
@@ -153,4 +170,4 @@ function toEnglishDigits(value: string) { return String(value).replace(/[۰-۹]/
 function attribution(params: URLSearchParams) { return { utm_source: params.get("utm_source") || "", utm_medium: params.get("utm_medium") || "", utm_campaign: params.get("utm_campaign") || "", utm_term: params.get("utm_term") || "", utm_content: params.get("utm_content") || "" }; }
 function apiError(error: unknown) { if (!(error instanceof Error)) return ""; const payload = (error as Error & { payload?: { error?: { details?: Record<string, string[]> } } }).payload; const details = payload?.error?.details; return details ? Object.values(details).flat().join(" ") : ""; }
 
-export function SellSuccessClient({ store }: { store: Store | null }) { const params = useSearchParams(); const language: Language = params.get("lang") === "en" ? "en" : "fa"; const fa = language === "fa"; const code = params.get("code"); const [copied, setCopied] = useState(false); return <div dir={fa ? "rtl" : "ltr"}><PublicHeader language={language} /><main className="sell-success">{code ? <><img src="/images/brand-mark.png" alt="" /><span><FiCheck /></span><h1>{fa ? "درخواست شما با موفقیت دریافت شد" : "We received your request"}</h1><p>{fa ? "کارشناسان ما پس از بررسی تصاویر، در سریع‌ترین زمان ممکن برای هماهنگی بازدید، قیمت‌گذاری و خرید با شما تماس می‌گیرند." : "Our experts will review your photos and contact you to arrange an inspection, appraisal and possible purchase."}</p><div className="tracking-card"><small>{fa ? "کد پیگیری" : "Tracking code"}</small><strong dir="ltr">{code}</strong><button className="button" onClick={async () => { await navigator.clipboard.writeText(code); setCopied(true); }}><FiCopy />{copied ? (fa ? "کپی شد" : "Copied") : (fa ? "کپی کد پیگیری" : "Copy tracking code")}</button></div><div className="success-actions"><Link className="button button-primary" href={`/Market/sell?lang=${language}`}><FiPlus />{fa ? "ثبت درخواست برای فرش دیگر" : "Submit another rug"}</Link><a className="button" href={`tel:${store?.mobile_number}`}>{fa ? "تماس با فروشگاه" : "Call the store"}</a></div><div className="success-notice"><FiInfo />{fa ? "ثبت درخواست به معنی تعهد خرید یا اعلام قیمت نیست؛ قیمت نهایی پس از بازدید و توافق حضوری مشخص می‌شود." : "Submitting is not a purchase commitment or price quote."}</div></> : <><h1>{fa ? "کد پیگیری در دسترس نیست" : "Tracking code unavailable"}</h1><Link className="button" href={`/Market/sell?lang=${language}`}>{fa ? "بازگشت به فرم" : "Back to form"}</Link></>}</main><PublicFooter language={language} store={store} /></div>; }
+export function SellSuccessClient({ store }: { store: Store | null }) { const params = useSearchParams(); const language: Language = params.get("lang") === "en" ? "en" : "fa"; const fa = language === "fa"; const code = params.get("code"); const [copied, setCopied] = useState(false); return <div dir={fa ? "rtl" : "ltr"}><PublicHeader language={language} /><main className="sell-success">{code ? <><div className="success-emblem"><img src="/images/brand-mark.png" alt="" /></div><span className="success-icon"><FiCheck /></span><h1>{fa ? "درخواست شما با موفقیت دریافت شد" : "We received your request"}</h1><p>{fa ? "کارشناسان ما پس از بررسی تصاویر، در سریع‌ترین زمان ممکن برای هماهنگی بازدید، قیمت‌گذاری و خرید با شما تماس می‌گیرند." : "Our experts will review your photos and contact you to arrange an inspection, appraisal and possible purchase."}</p><div className="tracking-card"><small>{fa ? "کد پیگیری" : "Tracking code"}</small><strong dir="ltr">{code}</strong><button className="button" onClick={async () => { await navigator.clipboard.writeText(code); setCopied(true); }}><FiCopy />{copied ? (fa ? "کپی شد" : "Copied") : (fa ? "کپی کد پیگیری" : "Copy tracking code")}</button></div><div className="success-actions"><Link className="button button-primary" href={`/Market/sell?lang=${language}`}><FiPlus />{fa ? "ثبت درخواست برای فرش دیگر" : "Submit another rug"}</Link><a className="button" href={`tel:${store?.mobile_number}`}><FiPhone />{fa ? "تماس با فروشگاه" : "Call the store"}</a></div><div className="success-notice"><FiInfo /><span>{fa ? "ثبت درخواست به معنی تعهد خرید یا اعلام قیمت نیست؛ قیمت نهایی پس از بازدید و توافق حضوری مشخص می‌شود." : "Submitting is not a purchase commitment or price quote."}</span></div></> : <><h1>{fa ? "کد پیگیری در دسترس نیست" : "Tracking code unavailable"}</h1><Link className="button" href={`/Market/sell?lang=${language}`}>{fa ? "بازگشت به فرم" : "Back to form"}</Link></>}</main><PublicFooter language={language} store={store} /></div>; }

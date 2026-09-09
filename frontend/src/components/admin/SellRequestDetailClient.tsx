@@ -30,13 +30,14 @@ export function SellRequestDetailClient({ id }: { id: string }) {
   const [rejectOpen, setRejectOpen] = useState(false);
   const [reason, setReason] = useState<SellRequestRejectionReason | "">("");
   const [rejectionNote, setRejectionNote] = useState("");
+  const [rejectError, setRejectError] = useState("");
 
   const load = useCallback(() => apiFetch<AdminSellRequestDetail>(`/admin/sell-requests/${id}/`).then((result) => { setRequest(result); setStatus(result.status); }).catch(() => setError("دریافت درخواست انجام نشد.")), [id]);
   useEffect(() => { void load(); }, [load]);
 
   async function applyStatus() {
     if (!request || status === request.status) return;
-    if (status === "rejected") { setRejectOpen(true); return; }
+    if (status === "rejected") { setRejectError(""); setRejectOpen(true); return; }
     setSaving(true); setError("");
     try { const updated = await apiFetch<AdminSellRequestDetail>(`/admin/sell-requests/${id}/status/`, { method: "PATCH", body: JSON.stringify({ status }) }); setRequest(updated); }
     catch { setError("ثبت وضعیت انجام نشد."); }
@@ -45,10 +46,10 @@ export function SellRequestDetailClient({ id }: { id: string }) {
 
   async function reject(event: FormEvent) {
     event.preventDefault();
-    if (!reason) { setError("دلیل رد را انتخاب کنید."); return; }
-    setSaving(true); setError("");
+    if (!reason) { setRejectError("دلیل رد را انتخاب کنید."); return; }
+    setSaving(true); setRejectError("");
     try { const updated = await apiFetch<AdminSellRequestDetail>(`/admin/sell-requests/${id}/status/`, { method: "PATCH", body: JSON.stringify({ status: "rejected", rejection_reason: reason, rejection_note: rejectionNote }) }); setRequest(updated); setStatus("rejected"); setRejectOpen(false); }
-    catch { setError("ثبت رد درخواست انجام نشد."); }
+    catch { setRejectError("ثبت رد درخواست انجام نشد."); }
     finally { setSaving(false); }
   }
 
@@ -85,6 +86,6 @@ export function SellRequestDetailClient({ id }: { id: string }) {
       <section className="admin-panel request-contact-card"><h2>ارتباط با مالک</h2><div className="owner-phone"><small>شماره موبایل</small><strong dir="ltr">{request.phone_number}</strong></div><button className="button button-primary block" onClick={() => void callOwner()}><FiPhone />تماس با مالک</button><dl className="compact-values"><div><dt>استان</dt><dd>{request.province.label_fa}</dd></div><div><dt>نشانی</dt><dd>{request.address || "هنگام تماس دریافت شود"}</dd></div></dl></section>
       <section className="admin-panel request-action-panel"><h2>وضعیت و اقدام بعدی</h2><p>وضعیت را می‌توانید در هر زمان تغییر دهید؛ همه تغییرها در تاریخچه می‌مانند.</p><div className="request-status-action"><select value={status} onChange={(event) => setStatus(event.target.value as SellRequestStatus)}>{Object.entries(requestStatusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><button className="button button-primary" disabled={saving || status === request.status} onClick={() => void applyStatus()}>ثبت وضعیت</button></div>{request.status === "rejected" && <div className="reject-summary"><strong>دلیل رد</strong><span>{request.rejection_reason ? rejectionReasons[request.rejection_reason] : "ثبت نشده"}</span>{request.rejection_note && <p>{request.rejection_note}</p>}</div>}<form onSubmit={addNote}><label className="sell-field"><span>یادداشت داخلی <small className="optional-mark">اختیاری</small></span><textarea maxLength={1000} placeholder="مثلاً زمان مناسب تماس یا نکته بازدید" value={note} onChange={(event) => setNote(event.target.value)} /></label><button className="button" disabled={saving || !note.trim()}><FiSave />ذخیره یادداشت</button></form>{error && <p className="field-error" role="alert">{error}</p>}</section>
     </aside><section className="admin-panel request-history-panel"><h2>تاریخچه درخواست</h2><ol className="request-history">{[...request.status_history].reverse().map((item) => <li key={item.id}><span className="history-dot" /><div><strong>{requestStatusLabels[item.to_status]}</strong><small>{dateTime(item.created_at)}{item.changed_by ? ` · ${item.changed_by}` : ""}</small></div></li>)}</ol>{request.notes.length > 0 && <><h3>یادداشت‌های داخلی</h3><ul className="internal-notes">{[...request.notes].reverse().map((item) => <li key={item.id}><p>{item.body}</p><small>{dateTime(item.created_at)}{item.author ? ` · ${item.author}` : ""}</small></li>)}</ul></>}</section></div>
-    {rejectOpen && <div className="modal-backdrop" role="presentation"><section className="modal" role="dialog" aria-modal="true" aria-labelledby="reject-title"><header><h2 id="reject-title">ثبت دلیل رد درخواست</h2><button className="icon-button" onClick={() => setRejectOpen(false)} aria-label="بستن"><FiX /></button></header><form className="modal-content reject-form" onSubmit={reject}><label className="sell-field"><span>دلیل رد <small className="required-mark">اجباری</small></span><select required value={reason} onChange={(event) => setReason(event.target.value as SellRequestRejectionReason)}><option value="">انتخاب کنید</option>{Object.entries(rejectionReasons).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label><label className="sell-field"><span>توضیح تکمیلی <small className="optional-mark">اختیاری</small></span><textarea maxLength={1000} value={rejectionNote} onChange={(event) => setRejectionNote(event.target.value)} /></label>{error && <p className="field-error" role="alert">{error}</p>}<div className="modal-actions"><button className="button button-primary" disabled={saving}>تأیید رد درخواست</button><button className="button" type="button" onClick={() => setRejectOpen(false)}>انصراف</button></div></form></section></div>}
+    {rejectOpen && <div className="modal-backdrop" role="presentation"><section className="modal" role="dialog" aria-modal="true" aria-labelledby="reject-title"><header><h2 id="reject-title">ثبت دلیل رد درخواست</h2><button className="icon-button" onClick={() => setRejectOpen(false)} aria-label="بستن"><FiX /></button></header><form className="modal-content reject-form" onSubmit={reject} noValidate><label className="sell-field"><span>دلیل رد <small className="required-mark">اجباری</small></span><select value={reason} onChange={(event) => setReason(event.target.value as SellRequestRejectionReason)}><option value="">انتخاب کنید</option>{Object.entries(rejectionReasons).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label><label className="sell-field"><span>توضیح تکمیلی <small className="optional-mark">اختیاری</small></span><textarea maxLength={1000} value={rejectionNote} onChange={(event) => setRejectionNote(event.target.value)} /></label>{rejectError && <p className="field-error" role="alert">{rejectError}</p>}<div className="modal-actions"><button className="button button-primary" disabled={saving}>تأیید رد درخواست</button><button className="button" type="button" onClick={() => setRejectOpen(false)}>انصراف</button></div></form></section></div>}
   </AdminShell>;
 }

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { FiChevronDown, FiFilter, FiSearch, FiX } from "react-icons/fi";
+import { FiChevronDown, FiSearch, FiSliders, FiX } from "react-icons/fi";
 import { PublicHeader } from "./PublicHeader";
 import { PublicFooter } from "./PublicFooter";
 import { MarketingBanner } from "./MarketingBanner";
@@ -19,6 +19,13 @@ function cover(product: Product) {
   return product.images.find((item) => item.is_cover) ?? product.images[0];
 }
 
+function digitsOnly(value: string) {
+  return value
+    .replace(/[۰-۹]/g, (digit) => String("۰۱۲۳۴۵۶۷۸۹".indexOf(digit)))
+    .replace(/[٠-٩]/g, (digit) => String("٠١٢٣٤٥٦٧٨٩".indexOf(digit)))
+    .replace(/\D/g, "");
+}
+
 export function MarketClient({ initialData = null, initialReferences = {}, initialStore = null }: { initialData?: PaginatedProducts | null; initialReferences?: References; initialStore?: Store | null }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -29,6 +36,8 @@ export function MarketClient({ initialData = null, initialReferences = {}, initi
   const [error, setError] = useState(false);
   const [query, setQuery] = useState(searchParams.get("q") ?? "");
   const [mobileFilters, setMobileFilters] = useState(false);
+  const [minPriceRaw, setMinPriceRaw] = useState(searchParams.get("min_price") ?? "");
+  const [maxPriceRaw, setMaxPriceRaw] = useState(searchParams.get("max_price") ?? "");
   const firstRender = useRef(true);
 
   const load = useCallback(async () => {
@@ -102,7 +111,7 @@ export function MarketClient({ initialData = null, initialReferences = {}, initi
   }, [language, references, searchParams]);
 
   const removeFilter = (key: string, value: string) => {
-    if (key === "price") return updateParams({ min_price: null, max_price: null });
+    if (key === "price") { setMinPriceRaw(""); setMaxPriceRaw(""); return updateParams({ min_price: null, max_price: null }); }
     if (key === "raj") return updateParams({ min_raj: null, max_raj: null });
     if (key === "reeds" || key === "density") return updateParams({ [key]: null });
     updateParams({ [key]: searchParams.getAll(key).filter((item) => item !== value) });
@@ -111,7 +120,7 @@ export function MarketClient({ initialData = null, initialReferences = {}, initi
   const filters = (
     <aside className={`filters-panel ${mobileFilters ? "filters-panel-open" : ""}`}>
       <div className="filters-title">
-        <FiFilter /> <strong>{t(language, "filters")}</strong>
+        <FiSliders /> <strong>{t(language, "filters")}</strong>
         <button className="mobile-only icon-button" onClick={() => setMobileFilters(false)} aria-label="Close"><FiX /></button>
       </div>
       <FilterSection label={language === "fa" ? "نوع فرش" : "Carpet type"}>
@@ -121,8 +130,8 @@ export function MarketClient({ initialData = null, initialReferences = {}, initi
       </FilterSection>
       <FilterSection label={`${language === "fa" ? "قیمت" : "Price"} (${t(language, "toman")})`} open>
         <div className="range-grid">
-          <label>{language === "fa" ? "حداقل" : "Min"}<input inputMode="numeric" defaultValue={searchParams.get("min_price") ?? ""} placeholder="20,000,000" onBlur={(e) => updateParams({ min_price: e.target.value.replace(/,/g, "") || null })} /></label>
-          <label>{language === "fa" ? "حداکثر" : "Max"}<input inputMode="numeric" defaultValue={searchParams.get("max_price") ?? ""} placeholder="500,000,000" onBlur={(e) => updateParams({ max_price: e.target.value.replace(/,/g, "") || null })} /></label>
+          <label>{language === "fa" ? "حداقل" : "Min"}<input inputMode="numeric" value={minPriceRaw ? number(language, Number(minPriceRaw)) : ""} placeholder={language === "fa" ? `مثال: ${number(language, 20000000)}` : `e.g. ${number(language, 20000000)}`} onChange={(e) => setMinPriceRaw(digitsOnly(e.target.value))} onBlur={() => updateParams({ min_price: minPriceRaw || null })} /></label>
+          <label>{language === "fa" ? "حداکثر" : "Max"}<input inputMode="numeric" value={maxPriceRaw ? number(language, Number(maxPriceRaw)) : ""} placeholder={language === "fa" ? `مثال: ${number(language, 500000000)}` : `e.g. ${number(language, 500000000)}`} onChange={(e) => setMaxPriceRaw(digitsOnly(e.target.value))} onBlur={() => updateParams({ max_price: maxPriceRaw || null })} /></label>
         </div>
       </FilterSection>
       {filterGroups.map((group) => (
@@ -137,7 +146,7 @@ export function MarketClient({ initialData = null, initialReferences = {}, initi
       <FilterSection label={t(language, "condition")}>
         {(["new", "used"] as const).map((value) => <Check key={value} label={t(language, value)} checked={searchParams.getAll("condition").includes(value)} onChange={() => toggleMulti("condition", value)} />)}
       </FilterSection>
-      <button className="text-button clear-button" onClick={() => router.push(`/Market?lang=${language}`)}><FiX />{t(language, "clear")}</button>
+      <button className="text-button clear-button" onClick={() => { setMinPriceRaw(""); setMaxPriceRaw(""); router.push(`/Market?lang=${language}`); }}><FiX />{t(language, "clear")}</button>
     </aside>
   );
 
@@ -159,7 +168,7 @@ export function MarketClient({ initialData = null, initialReferences = {}, initi
             <div className="catalog-toolbar">
               <span>{number(language, data?.count ?? 0)} {t(language, "result")}</span>
               <div className="toolbar-actions">
-                <button className="filter-trigger" onClick={() => setMobileFilters(true)}><FiFilter />{t(language, "filters")}</button>
+                <button className="filter-trigger" onClick={() => setMobileFilters(true)}><FiSliders />{t(language, "filters")}</button>
                 <label className="sort-select">
                   <select value={searchParams.get("sort") ?? "newest"} onChange={(e) => { track("sort_changed", language, { sort_value: e.target.value }); updateParams({ sort: e.target.value === "newest" ? null : e.target.value }); }}>
                     <option value="newest">{t(language, "newest")}</option>

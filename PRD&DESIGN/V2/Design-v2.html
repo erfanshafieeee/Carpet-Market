@@ -6085,7 +6085,7 @@ const ICONS={"circle":"data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy5
     requestType = "",
     requestPage = 1,
     requestGalleryIndex = 0,
-    requestRange = "30";
+    requestRange = "all";
   const t = (k) => (words[k] || sellWords[k] || [k, k])[lang === "en" ? 1 : 0];
   const n = (v, opts = {}) =>
     new Intl.NumberFormat(lang === "en" ? "en-US" : "fa-IR", opts).format(v);
@@ -7502,7 +7502,7 @@ const ICONS={"circle":"data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy5
     return `<section class="jalali-range" aria-label="انتخاب ${rangeLabel}"><div class="jalali-range-head"><div><strong>${rangeLabel}</strong><span>تقویم رسمی ایران</span></div>${customFrom || customTo ? `<button type="button" class="jalali-clear-inline" data-action="clear-jalali">پاک کردن بازه</button>` : ""}</div><div class="range-dates">${jalaliField("from", "از تاریخ", customFrom)}<span class="range-connector" aria-hidden="true">${icon("arrow-left", "wine sm")}</span>${jalaliField("to", "تا تاریخ", customTo)}</div><p class="jalali-range-hint">روز شروع و پایان در گزارش محاسبه می‌شوند.</p></section>`;
   }
   function requestRangeControls() {
-    return `<section class="request-date-filter" aria-label="فیلتر زمان ارسال"><div class="request-date-copy">${icon("calendar", "wine")}<div><strong>زمان ارسال درخواست</strong><small>بازه‌های پرکاربرد یا تاریخ دلخواه</small></div></div><div class="request-range-select"><label class="sr-only" for="request-range">بازه زمانی</label><select id="request-range" aria-label="بازه زمانی درخواست‌ها"><option value="7" ${requestRange === "7" ? "selected" : ""}>۷ روز اخیر</option><option value="30" ${requestRange === "30" ? "selected" : ""}>۳۰ روز اخیر</option><option value="90" ${requestRange === "90" ? "selected" : ""}>۹۰ روز اخیر</option><option value="all" ${requestRange === "all" ? "selected" : ""}>همه زمان‌ها</option><option value="custom" ${requestRange === "custom" ? "selected" : ""}>بازه دلخواه…</option></select></div>${requestRange === "custom" ? jalaliRangeControls() : ""}</section>`;
+    return `<section class="request-date-filter" aria-label="فیلتر زمان ارسال"><div class="request-date-copy">${icon("calendar", "wine")}<div><strong>زمان ارسال درخواست</strong><small>بازه‌های پرکاربرد یا تاریخ دلخواه</small></div></div><div class="request-range-select"><label class="sr-only" for="request-range">بازه زمانی</label><select id="request-range" aria-label="بازه زمانی درخواست‌ها"><option value="all" ${requestRange === "all" ? "selected" : ""}>همه زمان‌ها</option><option value="7" ${requestRange === "7" ? "selected" : ""}>۷ روز اخیر</option><option value="30" ${requestRange === "30" ? "selected" : ""}>۳۰ روز اخیر</option><option value="90" ${requestRange === "90" ? "selected" : ""}>۹۰ روز اخیر</option><option value="custom" ${requestRange === "custom" ? "selected" : ""}>بازه دلخواه…</option></select></div>${requestRange === "custom" ? jalaliRangeControls() : ""}</section>`;
   }
   function jalaliPickerHtml() {
     const first = findGregorianForJalali(jalaliYear, jalaliMonth, 1),
@@ -8395,7 +8395,7 @@ const ICONS={"circle":"data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy5
         requestStatus = "";
         requestType = "";
         requestPage = 1;
-        requestRange = "30";
+        requestRange = "all";
         customFrom = "";
         customTo = "";
         render();

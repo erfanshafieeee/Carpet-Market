@@ -13,6 +13,10 @@ frontend/qa/chrome-*/
 frontend/qa/v2-design-parity/source/
 frontend/qa/v2-design-parity/implementation/
 frontend/qa/v2-design-parity/compare.html
+frontend/qa/v2-sell-flow/source-*.png
+frontend/qa/v2-sell-flow/implementation-step-1.png
+frontend/qa/v2-sell-flow/implementation-success.png
+frontend/qa/v2-sell-flow/compare.html
 *.tsbuildinfo
 coverage/
 .pytest_cache/

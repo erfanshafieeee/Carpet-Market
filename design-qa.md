@@ -56,6 +56,16 @@
 - Browser interaction: passed in Chrome; real file selection shows one complete preview immediately, navigation reaches step 2, returning keeps the complete preview, success renders two actions and the notice, and console/runtime errors are empty.
 - Frontend verification: TypeScript, ESLint, and the production build passed.
 
+### Sell progress-card follow-up — 2026-09-09
+
+- Source visual truth: the latest `599 × 988` progress-card screenshot supplied in chat, showing step 1 completed and step 2 active.
+- Density normalization: the source card bounds are `530 × 910` image pixels; normalized as an `@2x` capture, the target is `265 × 455` CSS pixels. The implementation rail measures exactly `265 × 455` at DPR `1`.
+- Rendered implementation and focused evidence: `frontend/qa/v2-sell-flow/implementation-progress-step-2.png`, full browser capture at `1440 × 1000`, DPR `1`, with the progress card clearly readable.
+- `[P2]` Earlier step spacing placed the notice too low and left too little intentional empty space below it. Fixed the progress grid interval from `17px` to `2px`, set the lower margin to `12px`, and changed the information icon to the reference light foreground.
+- State fidelity passed: step 1 renders a wine completed circle with a check, step 2 renders as active, step 3 remains inactive, and all labels retain the screenshot’s hierarchy and RTL alignment.
+- Typography, spacing, colors, supplied logo quality, Feather icons, Persian copy, contrast, and the desktop/mobile responsive behavior have no remaining actionable `P0`, `P1`, or `P2` finding.
+- Chrome regression passed with exact metrics: rail `265px`, brand gap `11px`, progress gap `2px`, progress bottom margin `12px`, item content gap `12px`, circles `31px`, and no console/runtime errors.
+
 ## Archived V1 comparison
 
 ## Comparison setup

@@ -71,7 +71,7 @@ await navigate(designUrl("sell"));
 await screenshot("source-step-1");
 await navigate(`${origin}/Market/sell?lang=fa&step=1`);
 await screenshot("implementation-step-1");
-const progressMetrics = JSON.parse(await evaluate("JSON.stringify((() => { const rail=document.querySelector('.sell-summary'); const brand=document.querySelector('.sell-summary-brand'); const item=document.querySelector('.sell-progress li'); const circle=document.querySelector('.sell-progress li > span'); return {railWidth:Math.round(rail?.getBoundingClientRect().width||0),brandGap:parseFloat(getComputedStyle(brand).gap),itemGap:parseFloat(getComputedStyle(item).gap),circleWidth:Math.round(circle?.getBoundingClientRect().width||0)}; })())"));
+const progressMetrics = JSON.parse(await evaluate("JSON.stringify((() => { const rail=document.querySelector('.sell-summary'); const brand=document.querySelector('.sell-summary-brand'); const progress=document.querySelector('.sell-progress'); const item=document.querySelector('.sell-progress li'); const circle=document.querySelector('.sell-progress li > span'); return {railWidth:Math.round(rail?.getBoundingClientRect().width||0),brandGap:parseFloat(getComputedStyle(brand).gap),progressGap:parseFloat(getComputedStyle(progress).gap),progressMarginBottom:parseFloat(getComputedStyle(progress).marginBottom),itemGap:parseFloat(getComputedStyle(item).gap),circleWidth:Math.round(circle?.getBoundingClientRect().width||0)}; })())"));
 
 await evaluate("document.querySelector('input[name=rug_type]')?.click()");
 await delay(300);
@@ -88,6 +88,8 @@ await evaluate("document.querySelector('.sell-actions .button-primary')?.click()
 await delay(1500);
 const stepAfterSubmit = await evaluate("new URL(location.href).searchParams.get('step')");
 const reachedStepTwo = stepAfterSubmit === "2";
+const stepTwoState = JSON.parse(await evaluate("JSON.stringify((() => { const items=[...document.querySelectorAll('.sell-progress li')]; return {done:items[0]?.classList.contains('done'),doneHasCheck:Boolean(items[0]?.querySelector('svg')),active:items[1]?.classList.contains('active'),thirdInactive:!items[2]?.className,noteIconColor:getComputedStyle(document.querySelector('.summary-note > svg')).color}; })())"));
+await screenshot("implementation-progress-step-2");
 await evaluate("document.querySelector('.sell-actions .button:not(.button-primary)')?.click()");
 await delay(900);
 const previewAfterBack = JSON.parse(await evaluate("JSON.stringify((() => { const image=document.querySelector('.sell-photo-list img'); return {count:document.querySelectorAll('.sell-photo-list img').length,complete:Boolean(image?.complete),naturalWidth:image?.naturalWidth||0}; })())"));
@@ -114,11 +116,12 @@ const checks = {
   radioChecked,
   stepAfterSubmit,
   reachedStepTwo,
+  stepTwoState,
   previewAfterBack,
   successMetrics,
   browserErrors: [...new Set(browserErrors)],
 };
-checks.passed = immediatePreview.count === 1 && immediatePreview.src.startsWith("blob:") && immediatePreview.complete && immediatePreview.naturalWidth > 0 && progressMetrics.railWidth === 265 && progressMetrics.brandGap === 11 && progressMetrics.itemGap === 12 && progressMetrics.circleWidth === 31 && radioChecked && reachedStepTwo && previewAfterBack.count === 1 && previewAfterBack.complete && previewAfterBack.naturalWidth > 0 && successMetrics.logoWidth === 145 && successMetrics.checkWidth === 48 && successMetrics.titleColor === "rgb(41, 29, 25)" && successMetrics.trackingBackground === "rgb(238, 224, 206)" && successMetrics.buttons === 2 && successMetrics.notice && checks.browserErrors.length === 0;
+checks.passed = immediatePreview.count === 1 && immediatePreview.src.startsWith("blob:") && immediatePreview.complete && immediatePreview.naturalWidth > 0 && progressMetrics.railWidth === 265 && progressMetrics.brandGap === 11 && progressMetrics.progressGap === 2 && progressMetrics.progressMarginBottom === 12 && progressMetrics.itemGap === 12 && progressMetrics.circleWidth === 31 && radioChecked && reachedStepTwo && stepTwoState.done && stepTwoState.doneHasCheck && stepTwoState.active && stepTwoState.thirdInactive && stepTwoState.noteIconColor === "rgb(248, 239, 230)" && previewAfterBack.count === 1 && previewAfterBack.complete && previewAfterBack.naturalWidth > 0 && successMetrics.logoWidth === 145 && successMetrics.checkWidth === 48 && successMetrics.titleColor === "rgb(41, 29, 25)" && successMetrics.trackingBackground === "rgb(238, 224, 206)" && successMetrics.buttons === 2 && successMetrics.notice && checks.browserErrors.length === 0;
 console.log(JSON.stringify(checks, null, 2));
 socket.close();
 if (!checks.passed) process.exitCode = 1;
